@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import subprocess
 
 import os
+import socket
 import numpy as np
 import pandas as pd
 import optuna
@@ -26,7 +27,7 @@ def log_startup(logger, dataset_ids, settings):
     logger.info('Git hash: {}'.format(result.stdout.decode('utf-8')))
     result = subprocess.run(['git', 'status', '.'], stdout=subprocess.PIPE)
     logger.info('Git status (./src): {}'.format(result.stdout.decode('utf-8')))
-    logger.info(f'Running on system {os.environ["COMPUTERNAME"]}')
+    logger.info(f'Running on system {socket.gethostname()}')
 
 @dataclass
 class Settings:
