@@ -1,0 +1,10 @@
+Dataset:     Ionosphere
+Abstract:    Classification of radar returns from the ionosphere
+Authors:     V. Sigillito, S. Wing, L. Hutton, K. Baker
+URL:         https://archive.ics.uci.edu/dataset/52/ionosphere
+
+# Samples:   351 (no missing values)
+# Features:  34
+# Classes:   2
+b               126 (35.90%)
+g               225 (64.10%)

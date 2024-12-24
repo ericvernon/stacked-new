@@ -1,0 +1,10 @@
+Dataset:     Connectionist Bench (Sonar, Mines vs. Rocks)
+Abstract:    The task is to train a network to discriminate between sonar signals bounced off a metal cylinder and those bounced off a roughly cylindrical rock.
+Authors:     Terry Sejnowski, R. Gorman
+URL:         https://archive.ics.uci.edu/dataset/151/connectionist+bench+sonar+mines+vs+rocks
+
+# Samples:   208 (no missing values)
+# Features:  60
+# Classes:   2
+M               111 (53.37%)
+R                97 (46.63%)

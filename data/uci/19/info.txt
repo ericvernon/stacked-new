@@ -1,0 +1,12 @@
+Dataset:     Car Evaluation
+Abstract:    Derived from simple hierarchical decision model, this database may be useful for testing constructive induction and structure discovery methods.
+Authors:     Marko Bohanec
+URL:         https://archive.ics.uci.edu/dataset/19/car+evaluation
+
+# Samples:   1728 (no missing values)
+# Features:  6
+# Classes:   4
+acc             384 (22.22%)
+good             69 (3.99%)
+unacc          1210 (70.02%)
+vgood            65 (3.76%)

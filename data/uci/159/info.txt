@@ -1,0 +1,10 @@
+Dataset:     MAGIC Gamma Telescope
+Abstract:    Data are MC generated to simulate registration of high energy gamma particles in an atmospheric Cherenkov telescope
+Authors:     R. Bock
+URL:         https://archive.ics.uci.edu/dataset/159/magic+gamma+telescope
+
+# Samples:   19020 (no missing values)
+# Features:  10
+# Classes:   2
+g             12332 (64.84%)
+h              6688 (35.16%)

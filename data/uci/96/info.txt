@@ -1,0 +1,10 @@
+Dataset:     SPECTF Heart
+Abstract:    Data on cardiac Single Proton Emission Computed Tomography (SPECT) images. Each patient classified into two categories: normal and abnormal.
+Authors:     Krzysztof Cios, Lukasz Kurgan, Lucy Goodenday
+URL:         https://archive.ics.uci.edu/dataset/96/spectf+heart
+
+# Samples:   267 (no missing values)
+# Features:  44
+# Classes:   2
+0                55 (20.60%)
+1               212 (79.40%)

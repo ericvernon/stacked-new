@@ -1,0 +1,10 @@
+Dataset:     Haberman's Survival
+Abstract:    Dataset contains cases from study conducted on the survival of patients who had undergone surgery for breast cancer
+Authors:     S. Haberman
+URL:         https://archive.ics.uci.edu/dataset/43/haberman+s+survival
+
+# Samples:   306 (no missing values)
+# Features:  3
+# Classes:   2
+1               225 (73.53%)
+2                81 (26.47%)

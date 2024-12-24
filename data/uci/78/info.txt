@@ -1,0 +1,13 @@
+Dataset:     Page Blocks Classification
+Abstract:    The problem consists of classifying all the blocks of the page layout of a document that has been detected by a segmentation process.
+Authors:     Donato Malerba
+URL:         https://archive.ics.uci.edu/dataset/78/page+blocks+classification
+
+# Samples:   5473 (no missing values)
+# Features:  10
+# Classes:   5
+1              4913 (89.77%)
+2               329 (6.01%)
+3                28 (0.51%)
+4                88 (1.61%)
+5               115 (2.10%)

@@ -1,0 +1,10 @@
+Dataset:     Taiwanese Bankruptcy Prediction
+Abstract:    The data were collected from the Taiwan Economic Journal  for the years 1999 to 2009. Company bankruptcy was defined based on the business regulations of the Taiwan Stock Exchange.
+Authors:     
+URL:         https://archive.ics.uci.edu/dataset/572/taiwanese+bankruptcy+prediction
+
+# Samples:   6819 (no missing values)
+# Features:  95
+# Classes:   2
+0              6599 (96.77%)
+1               220 (3.23%)

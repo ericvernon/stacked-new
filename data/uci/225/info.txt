@@ -1,0 +1,13 @@
+Dataset:     ILPD (Indian Liver Patient Dataset)
+Abstract:    Death by liver cirrhosis continues to increase, given the increase in alcohol consumption rates, chronic hepatitis infections, and obesity-related liver disease. Notwithstanding the high mortality of this disease, liver diseases do not affect all sub-populations equally. The early detection of pathology is a determinant of patient outcomes, yet female patients appear to be marginalized when it comes to early diagnosis of liver pathology. 
+The dataset comprises 584 patient records collected from the NorthEast of Andhra Pradesh, India.
+The prediction task is to determine whether a patient suffers from liver disease based on the information about several biochemical markers, including albumin and other enzymes required for metabolism.
+
+Authors:     Bendi Ramana, N. Venkateswarlu
+URL:         https://archive.ics.uci.edu/dataset/225/ilpd+indian+liver+patient+dataset
+
+# Samples:   583 (no missing values)
+# Features:  10
+# Classes:   2
+1               416 (71.36%)
+2               167 (28.64%)

@@ -1,0 +1,12 @@
+Dataset:     Sepsis Survival Minimal Clinical Records
+Abstract:    The dataset consists of 110,204 admissions of 84,811 hospitalized subjects between 2011 and 2012 in Norway who were diagnosed with infections, systemic inflammatory response syndrome, sepsis by causative microbes, or septic shock.  The prediction task is to determine whether a patient survived or is deceased at a time of about 9 days after collecting their medical record at the hospital.
+
+This is an important prediction problem in clinical medicine. Sepsis is a life-threatening condition triggered by an immune overreaction to infection, leading to organ failure or even death. Sepsis is associated with immediate death risk, often killing patients within one hour. This renders many laboratory tests and hospital analyses impractical for timely diagnosis and treatment. Being able to predict the survival of patients within minutes with as few and easy-to-retrieve medical features as possible is very important.
+Authors:     Davide Chicco, Giuseppe Jurman
+URL:         https://archive.ics.uci.edu/dataset/827/sepsis+survival+minimal+clinical+records
+
+# Samples:   110341 (no missing values)
+# Features:  3
+# Classes:   2
+0              8129 (7.37%)
+1            102212 (92.63%)

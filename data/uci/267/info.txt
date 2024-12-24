@@ -1,0 +1,10 @@
+Dataset:     Banknote Authentication
+Abstract:    Data were extracted from images that were taken for the evaluation of an authentication procedure for banknotes.
+Authors:     Volker Lohweg
+URL:         https://archive.ics.uci.edu/dataset/267/banknote+authentication
+
+# Samples:   1372 (no missing values)
+# Features:  4
+# Classes:   2
+0               762 (55.54%)
+1               610 (44.46%)

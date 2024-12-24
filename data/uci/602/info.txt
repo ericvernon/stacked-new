@@ -1,0 +1,15 @@
+Dataset:     Dry Bean
+Abstract:    Images of 13,611 grains of 7 different registered dry beans were taken with a high-resolution camera. A total of 16 features; 12 dimensions and 4 shape forms, were obtained from the grains.
+Authors:     
+URL:         https://archive.ics.uci.edu/dataset/602/dry+bean+dataset
+
+# Samples:   13611 (no missing values)
+# Features:  16
+# Classes:   7
+BARBUNYA       1322 (9.71%)
+BOMBAY          522 (3.84%)
+CALI           1630 (11.98%)
+DERMASON       3546 (26.05%)
+HOROZ          1928 (14.17%)
+SEKER          2027 (14.89%)
+SIRA           2636 (19.37%)
