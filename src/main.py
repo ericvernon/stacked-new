@@ -162,7 +162,7 @@ def main():
         n_repeats=5,
         n_splits=10,
         n_jobs=6,
-        save_full_results=True,
+        save_full_results=False,
     )
 
     if len(sys.argv) > 1:
