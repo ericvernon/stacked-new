@@ -242,8 +242,8 @@ def write_header_ternary_grader(f):
     f.write('split,')
     f.write('white_box_name,black_box_name,grader_name,')
     f.write('white_box_mse_total,white_box_mse_easy,white_box_mse_hard,white_box_mse_very_hard,')
-    f.write('black_box_mse_total,black_box_mse_easy,black_box_mse_hard,black_box_mse_very_hard')
-    f.write('final_mse_total,final_mse_easy,final_mse_hard,final_mse_very_hard')
+    f.write('black_box_mse_total,black_box_mse_easy,black_box_mse_hard,black_box_mse_very_hard,')
+    f.write('final_mse_total,final_mse_easy,final_mse_hard,final_mse_very_hard,')
     f.write('deferral_rate,reject_rate')
     f.write('\n')
 

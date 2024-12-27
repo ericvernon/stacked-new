@@ -223,8 +223,8 @@ def write_header_ternary_grader(f):
     f.write('split,')
     f.write('white_box_name,black_box_name,grader_name,')
     f.write('white_box_accuracy_total,white_box_accuracy_easy,white_box_accuracy_hard,white_box_accuracy_very_hard,')
-    f.write('black_box_accuracy_total,black_box_accuracy_easy,black_box_accuracy_hard,black_box_accuracy_very_hard')
-    f.write('final_accuracy_total,final_accuracy_easy,final_accuracy_hard,final_accuracy_very_hard')
+    f.write('black_box_accuracy_total,black_box_accuracy_easy,black_box_accuracy_hard,black_box_accuracy_very_hard,')
+    f.write('final_accuracy_total,final_accuracy_easy,final_accuracy_hard,final_accuracy_very_hard,')
     f.write('deferral_rate,reject_rate')
     f.write('\n')
 
