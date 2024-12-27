@@ -29,6 +29,8 @@ def experiment_regression(dataset_ids: list, output_folder: Path, settings: Sett
         ):
             write_header_binary_grader(results_train_binary_fh)
             write_header_binary_grader(results_test_binary_fh)
+            write_header_ternary_grader(results_train_ternary_fh)
+            write_header_ternary_grader(results_test_ternary_fh)
 
             X, y = load_dataset(dataset_id)
 
