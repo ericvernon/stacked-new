@@ -105,7 +105,7 @@ def experiment_regression(dataset_ids: list, output_folder: Path, settings: Sett
 
                             results_train_ternary = calculate_results_ternary_grader(X_train, y_train, white_box_model,
                                                                                      black_box_model, ternary_grader_model)
-                            results_test_ternary = calculate_results_ternary_grader(X_train, y_train, white_box_model,
+                            results_test_ternary = calculate_results_ternary_grader(X_test, y_test, white_box_model,
                                                                                     black_box_model, ternary_grader_model)
 
                             save_results_ternary_grader(results_train_ternary_fh, data_split_idx, white_box_name,
