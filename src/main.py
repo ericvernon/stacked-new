@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import logging
 import sys
@@ -145,9 +146,17 @@ def experiment_classification(dataset_ids: list, output_folder: Path, settings: 
 
 
 def main():
-    print(sys.argv)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-exp-slug', type=str, default='exp_')
+    parser.add_argument('-d', type=str, action='append')
+    parser.add_argument('-n-repeats', type=int, default=5)
+    parser.add_argument('-n-splits', type=int, default=10)
+    parser.add_argument('-n-jobs', type=int, default=1)
+    parser.add_argument('--save-full-results', default=False, action='store_true')
 
-    experiment_slug = f'cls_'
+    args = parser.parse_args()
+
+    experiment_slug = args.exp_slug
     now = datetime.datetime.now()
     timestamp = now.strftime("%Y-%m-%d-%H-%M-%S")
 
@@ -161,16 +170,13 @@ def main():
         datefmt='%Y-%m-%d %H:%M:%S')
 
     settings = Settings(
-        n_repeats=5,
-        n_splits=10,
-        n_jobs=6,
-        save_full_results=False,
+        n_repeats=args.n_repeats,
+        n_splits=args.n_splits,
+        n_jobs=args.n_jobs,
+        save_full_results=args.save_full_results,
     )
 
-    if len(sys.argv) > 1:
-        datasets = sys.argv[1:]
-    else:
-        datasets = []
+    datasets = args.d
     experiment_classification(datasets, output_folder, settings)
 
 
