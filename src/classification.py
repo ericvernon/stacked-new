@@ -239,11 +239,14 @@ def save_results_ternary_grader(fh, split_idx, white_box_name, black_box_name, g
     fh.write('\n')
 
 
-def save_full_results(path, X, y_truth, white_box_model, black_box_model, grader_model):
+def save_results(path, X, y_truth, glass_box_model, black_box_model, grader_model, save_X=False):
     n_features = X.shape[1]
-    df = pd.DataFrame(X, index=None, columns=[f'X_{i}' for i in range(n_features)])
+    if save_X:
+        df = pd.DataFrame(X, index=None, columns=[f'X_{i}' for i in range(n_features)])
+    else:
+        df = pd.DataFrame()
     df['y_truth'] = y_truth
-    df['y_white'] = white_box_model.predict(X)
+    df['y_glass'] = glass_box_model.predict(X)
     df['y_black'] = black_box_model.predict(X)
     df['y_grader'] = grader_model.predict(X)
     df.to_csv(path, index=False)

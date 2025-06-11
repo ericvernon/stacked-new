@@ -79,17 +79,12 @@ def random_forest_regressor(n_jobs=None):
 
 
 class OptunaXGBoost:
-    def __init__(self, n_trials=100, n_jobs=1, regression=False):
+    def __init__(self, n_trials=100, n_jobs=1):
         self._model = None
+        self._model_fn = None
+        self._split_fn = None
         self._n_trials = n_trials
         self._n_jobs = n_jobs
-
-        if regression:
-            self._model_fn = XGBRegressor
-            self._split_fn = KFold
-        else:
-            self._model_fn = XGBClassifier
-            self._split_fn = StratifiedKFold
 
     def fit(self, X, y):
         def fn(trial):
@@ -107,49 +102,29 @@ class OptunaXGBoost:
 
         study = optuna.create_study(direction="maximize")
         study.optimize(fn, n_trials=self._n_trials, n_jobs=self._n_jobs)
-        self._model = XGBClassifier(**study.best_params)
+        self._model = self._model_fn(**study.best_params)
         self._model.fit(X, y)
 
     def predict(self, X):
         return self._model.predict(X)
 
 
-def xgboost_classifier(n_jobs=None):
-    return OptunaXGBoost(n_trials=100, n_jobs=n_jobs, regression=False)
+class OptunaXGBoostClassifier(OptunaXGBoost):
+    def __init__(self, n_trials=100, n_jobs=1):
+        super().__init__(n_trials, n_jobs)
+        self._model_fn = XGBClassifier
+        self._split_fn = StratifiedKFold
 
-def xgboost_regressor(n_jobs=None):
-    return OptunaXGBoost(n_trials=100, n_jobs=n_jobs, regression=True)
 
-# def xgboost_classifier(n_jobs=None):
-#     return GridSearchCV(
-#         estimator=XGBClassifier(),
-#         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
-#         param_grid={
-#             "max_depth": [4, 8, 16, 32, 64, 128],
-#             "min_child_weight": np.logspace(start=0, stop=4, num=10),
-#             "gamma": np.logspace(start=0, stop=4, num=10)
-#         },
-#         n_jobs=n_jobs
-#     )
-#
-# def optimized_xgboost(X_train, y_train, classifier=True, n_trials=25, n_jobs=None):
-#     if classifier:
-#         cls = XGBClassifier
-#     else:
-#         cls = XGBRegressor
-#
-#     def fn(trial):
-#         max_depth = trial.suggest_int("max_depth", low=1, high=128)
-#         min_child_weight = trial.suggest_float("min_child_weight", low=0, high=8)
-#         gamma = trial.suggest_float("gamma", low=0, high=4)
-#         xgb = cls(
-#             max_depth=max_depth,
-#             min_child_weight=min_child_weight,
-#             gamma=gamma,
-#         )
-#         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
-#         return cross_val_score(xgb, X_train, y_train, cv=cv).mean()
-#
-#     study = optuna.create_study(direction="maximize")
-#     study.optimize(fn, n_trials=n_trials)
-#     return cls(**study.best_params)
+class OptunaXGBoostRegressor(OptunaXGBoost):
+    def __init__(self, n_trials=100, n_jobs=1):
+        super().__init__(n_trials, n_jobs)
+        self._model_fn = XGBRegressor
+        self._split_fn = KFold
+
+
+def xgboost_classifier(n_trials=100, n_jobs=None):
+    return OptunaXGBoost(n_trials=n_trials, n_jobs=n_jobs)
+
+def xgboost_regressor(n_trials=100, n_jobs=None):
+    return OptunaXGBoost(n_trials=n_trials, n_jobs=n_jobs)

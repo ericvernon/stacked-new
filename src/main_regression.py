@@ -113,7 +113,7 @@ def experiment_regression(dataset_ids: list, output_folder: Path, settings: Sett
                             save_results_ternary_grader(results_test_ternary_fh, data_split_idx, white_box_name,
                                                         black_box_name, grader_name, results_test_ternary)
 
-                            if settings.save_full_results:
+                            if settings.save_results:
                                 save_full_results(
                                     result_path /
                                     f'{data_split_idx}-{white_box_name}-{black_box_name}-{grader_name}-train-binary.txt',
