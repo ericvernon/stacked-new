@@ -34,4 +34,4 @@ class Settings:
     n_repeats: int
     n_splits: int
     n_jobs: int = None
-    save_full_results: bool = False
+    save_X: bool = False

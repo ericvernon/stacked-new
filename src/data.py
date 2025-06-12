@@ -2,10 +2,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from ucimlrepo import fetch_ucirepo
-from sklearn.preprocessing import LabelEncoder
-
-
 def load_dataset(dataset_id):
     # Load a file, assuming the first (N - 1) columns are features, and the last column is the target value
     path = Path(f'../data/uci/{dataset_id}')

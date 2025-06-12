@@ -43,60 +43,6 @@ class ResultsTernary(Results):
     reject_rate: float
 
 
-def get_binary_grader_data(white_box_model, X_train, y_train):
-    """
-    Get data for the basic, 2-class grader
-    0: Easy (Use b_easy)
-    1: Hard (Use b_hard)
-    """
-    predict_train = white_box_model.predict(X_train)
-    wrong_idx = (predict_train != y_train).astype(int)
-
-    n_wrong = np.count_nonzero(wrong_idx)
-    if n_wrong < 2:
-        logger.warning(f"Less than 2 ({n_wrong}) incorrect patterns for {white_box_model}")
-        x2, y2 = X_train.copy(), y_train.copy()
-    else:
-        k_neighbors = min(n_wrong - 1, 5)
-        smote = SMOTE(k_neighbors=k_neighbors)
-        x2, y2 = smote.fit_resample(X_train, wrong_idx)
-
-    return x2, y2
-
-
-def get_ternary_grader_data(white_box_model, black_box_model, X_train, y_train):
-    """
-    Get data for the 3-class grader extension
-    0: Easy (Use b_easy)
-    1: Hard (Use b_hard)
-    2: Very hard (Reject)
-    """
-    n = X_train.shape[0]
-    results = np.zeros((n,), dtype=np.int64)
-
-    predict_easy = white_box_model.predict(X_train)
-    hard_idx = predict_easy != y_train
-    results[hard_idx] = DIFFICULTY_HARD
-
-    predict_hard = black_box_model.predict(X_train)
-    very_hard_idx = predict_hard != y_train
-    results[very_hard_idx] = DIFFICULTY_VERY_HARD
-
-    bins = np.bincount(results)
-
-    min_bin = np.min(bins)
-    if min_bin < 2:
-        logger.warning(f"Less than 2 ({min_bin}) patterns in a bin for the super grader ({bins})")
-        x2, y2 = X_train.copy(), y_train.copy()
-    elif bins.size < 2:
-        logger.warning("Only 'easy' patterns found when training the ternary grader")
-        x2, y2 = X_train.copy(), y_train.copy()
-    else:
-        k_neighbors = min(min_bin - 1, 5)
-        smote = SMOTE(k_neighbors=k_neighbors)
-        x2, y2 = smote.fit_resample(X_train, results)
-
-    return x2, y2
 
 
 def calculate_results_binary_grader(X, y_truth, white_box_model, black_box_model, grader_model):
