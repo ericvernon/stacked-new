@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.reporting import parse_results_file
+from src.reporting import parse_results_file, text_report
 
 reports_root = Path('./output/reports')
 results_root = Path('./output/results')
@@ -26,8 +26,9 @@ results_keys = [
     'n_total',
 ]
 
+
 def main():
-    experiment_name = 'simple_experiment/20250624-163254'
+    experiment_name = 'simple_experiment/20250619-175829'
 
     reports_path = reports_root / experiment_name
     reports_path.mkdir(exist_ok=True, parents=True)
@@ -51,7 +52,11 @@ def main():
                 add_dicts(raw_data[algorithm_type][dataset.name]['train'], results_info)
             else:
                 add_dicts(raw_data[algorithm_type][dataset.name]['test'], results_info)
-    print(raw_data)
+
+    for k, v in raw_data.items():
+        print(k)
+        print(v)
+        print(text_report(v['94']['test']))
 
 
 def add_dicts(target_dict, addend_dict):

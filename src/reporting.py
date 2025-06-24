@@ -109,3 +109,47 @@ def parse_results_file(results_file: Path):
         'n_hard': n_hard,
         'n_very_hard': n_very_hard,
     }
+
+
+def text_report(results_dict):
+    sb = ''
+    pct_easy = results_dict['n_easy'] / results_dict['n_total']
+    pct_hard = results_dict['n_hard'] / results_dict['n_total']
+    pct_very_hard = results_dict['n_very_hard'] / results_dict['n_total']
+    sb += (
+        '  Pattern Allocation\n'
+        '|| Easy       || Hard       || Very Hard  ||\n'
+        '||----------------------------------------||\n'
+        f'||{100 * pct_easy:6.2f}%     ||{100 * pct_hard:6.2f}%     ||{100 * pct_very_hard:6.2f}%     ||\n'
+        '||----------------------------------------||\n'
+        '\n'
+    )
+
+    hybrid_overall = results_dict['hybrid_n_correct_total'] / (results_dict['n_total'] - results_dict['hybrid_n_reject'])
+    hybrid_easy = results_dict['hybrid_n_correct_easy'] / results_dict['n_easy']
+    hybrid_hard = results_dict['hybrid_n_correct_hard'] / results_dict['n_hard']
+
+    glass_overall = results_dict['glass_n_correct_total'] / results_dict['n_total']
+    glass_easy = results_dict['glass_n_correct_easy'] / results_dict['n_easy']
+    glass_hard = results_dict['glass_n_correct_hard'] / results_dict['n_hard']
+    glass_very_hard = results_dict['glass_n_correct_very_hard'] / results_dict['n_very_hard']
+
+    black_overall = results_dict['black_n_correct_total'] / results_dict['n_total']
+    black_easy = results_dict['black_n_correct_easy'] / results_dict['n_easy']
+    black_hard = results_dict['black_n_correct_hard'] / results_dict['n_hard']
+    black_very_hard = results_dict['black_n_correct_very_hard'] / results_dict['n_very_hard']
+    sb += (
+        '  Accuracy\n'
+        '||            || Overall    || Easy       || Hard       || Very Hard  ||\n'
+        '||------------||------------||------------||------------||------------||\n'
+        f'|| Hybrid     ||{100 * hybrid_overall:6.2f}%     ||{100 * hybrid_easy:6.2f}%     ||'
+        f'{100 * hybrid_hard:6.2f}%     || (N/A)      ||\n'
+        f'|| Glass Box  ||{100 * glass_overall:6.2f}%     ||{100 * glass_easy:6.2f}%     ||'
+        f'{100 * glass_hard:6.2f}%     ||{100 * glass_very_hard:6.2f}%     ||\n'
+        f'|| Black Box  ||{100 * black_overall:6.2f}%     ||{100 * black_easy:6.2f}%     ||'
+        f'{100 * black_hard:6.2f}%     ||{100 * black_very_hard:6.2f}%     ||\n'
+        '||------------||------------||------------||------------||------------||\n'
+        '\n'
+    )
+
+    return sb
