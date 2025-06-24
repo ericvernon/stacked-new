@@ -1,12 +1,33 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.reporting import parse_results_file
+
 reports_root = Path('./output/reports')
 results_root = Path('./output/results')
 
 
+results_keys = [
+    'glass_n_correct_easy',
+    'glass_n_correct_hard',
+    'glass_n_correct_very_hard',
+    'glass_n_correct_total',
+    'black_n_correct_easy',
+    'black_n_correct_hard',
+    'black_n_correct_very_hard',
+    'black_n_correct_total',
+    'hybrid_n_correct_easy',
+    'hybrid_n_correct_hard',
+    'hybrid_n_reject',
+    'hybrid_n_correct_total',
+    'n_easy',
+    'n_hard',
+    'n_very_hard',
+    'n_total',
+]
+
 def main():
-    experiment_name = 'simple_experiment/20250619-175829'
+    experiment_name = 'simple_experiment/20250624-163254'
 
     reports_path = reports_root / experiment_name
     reports_path.mkdir(exist_ok=True, parents=True)
@@ -22,26 +43,22 @@ def main():
                 raw_data[algorithm_type] = {}
             if dataset.name not in raw_data[algorithm_type]:
                 raw_data[algorithm_type][dataset.name] = {
-                    'train': {
-                        'glass_n_correct_easy': 0,
-                        'glass_n_correct_hard': 0,
-                        'black_n_correct_easy': 0,
-                        'black_n_correct_hard': 0,
-                        'hybrid_n_correct_easy': 0,
-                        'hybrid_n_correct_hard': 0,
-                    },
-                    'test': {
-                        'glass_n_correct_easy': 0,
-                        'glass_n_correct_hard': 0,
-                        'black_n_correct_easy': 0,
-                        'black_n_correct_hard': 0,
-                        'hybrid_n_correct_easy': 0,
-                        'hybrid_n_correct_hard': 0,
-                    },
+                    'train': {key: 0 for key in results_keys},
+                    'test': {key: 0 for key in results_keys},
                 }
-            print(algorithm_type)
-#        raw_data[dataset.name] = dataset_results
+            results_info = parse_results_file(results_file)
+            if run_info.train_or_test == 'train':
+                add_dicts(raw_data[algorithm_type][dataset.name]['train'], results_info)
+            else:
+                add_dicts(raw_data[algorithm_type][dataset.name]['test'], results_info)
     print(raw_data)
+
+
+def add_dicts(target_dict, addend_dict):
+    for key in results_keys:
+        assert key in target_dict
+        assert key in addend_dict
+        target_dict[key] += addend_dict[key]
 
 
 @dataclass
@@ -59,7 +76,6 @@ class RunInfo:
 
 def parse_filename(filename):
     bits = filename[:-4].split('-')
-    print(bits)
     return RunInfo(
         run_id=int(bits[0]),
         glass_box_type=bits[1],
@@ -72,4 +88,3 @@ def parse_filename(filename):
 
 if __name__ == '__main__':
     main()
-    pass

@@ -17,6 +17,7 @@ def parse_results_file(results_file: Path):
         - hybrid_n_correct_hard: The number of correct answers from the hybrid system, limited to hard patterns
             i.e.,   black_box_answer == y_truth AND grader_answer == HARD
         - hybrid_n_reject: The number of patterns rejected by the hybrid system
+            ie.,    grader_answer == VERY_HARD
         - glass_n_correct_total: The total number of correct answers from the glass box
             i.e.,   glass_box_answer == y_truth
         - glass_n_correct_easy: The number of correct answers from the glass box, limited to easy patterns
