@@ -28,7 +28,7 @@ results_keys = [
 
 
 def main():
-    experiment_name = 'simple_experiment/20250619-175829'
+    experiment_name = 'simple_experiment/20250625-151929'
 
     reports_path = reports_root / experiment_name
     reports_path.mkdir(exist_ok=True, parents=True)
@@ -54,9 +54,19 @@ def main():
                 add_dicts(raw_data[algorithm_type][dataset.name]['test'], results_info)
 
     for k, v in raw_data.items():
-        print(k)
-        print(v)
-        print(text_report(v['94']['test']))
+        report = ''
+        for dataset_name, train_test in v.items():
+            report += f'DATASET ID: {dataset_name}\n'
+            report += '--TRAIN--\n'
+            report += text_report(v[dataset_name]['train'])
+            report += '--TEST--\n'
+            report += text_report(v[dataset_name]['test'])
+            report += '\n'
+        report_path = f'{reports_path / k}.txt'
+        with open(report_path, 'w') as f:
+            f.write(report)
+
+    print('OK')
 
 
 def add_dicts(target_dict, addend_dict):

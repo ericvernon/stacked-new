@@ -27,23 +27,23 @@ def main():
     }
 
     black_box_choices = {
-        'XGBoost': XGBClassifier,
+        'XGBoost': OptunaXGBoostClassifier,
     }
 
     grader_choices = {
         'ShallowDecisionTree': shallow_decision_tree_classifier,
-        'XGBoost': XGBClassifier,
+        'XGBoost': OptunaXGBoostClassifier,
     }
 
     exp = ExperimentClassification(glass_box_choices, black_box_choices, grader_choices, settings)
     output_path = Path('./output/results/simple_experiment') / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     output_path.mkdir(parents=True)
 
-    dataset_id = 94
-    exp.run_experiment(dataset_id, output_path)
+    dataset_ids = [17, 43, 52, 94, 96, 151, 174, 176, 267]
+    for dataset_id in dataset_ids:
+        print(f'.... {dataset_id} ...')
+        exp.run_experiment(dataset_id, output_path)
     print("Done!")
-
-    pass
 
 
 if __name__ == '__main__':

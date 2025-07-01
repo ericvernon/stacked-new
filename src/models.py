@@ -15,7 +15,7 @@ def shallow_decision_tree_classifier(n_jobs=None):
         estimator=DecisionTreeClassifier(random_state=19),
         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
         param_grid={
-            "max_depth": [1, 2, 3],
+            "max_depth": [1, 2, 3, 4],
         },
         n_jobs=n_jobs
     )

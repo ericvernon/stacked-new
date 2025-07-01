@@ -132,12 +132,19 @@ def text_report(results_dict):
     glass_overall = results_dict['glass_n_correct_total'] / results_dict['n_total']
     glass_easy = results_dict['glass_n_correct_easy'] / results_dict['n_easy']
     glass_hard = results_dict['glass_n_correct_hard'] / results_dict['n_hard']
-    glass_very_hard = results_dict['glass_n_correct_very_hard'] / results_dict['n_very_hard']
+    if results_dict['n_very_hard'] == 0:
+        glass_very_hard = np.nan
+    else:
+        glass_very_hard = results_dict['glass_n_correct_very_hard'] / results_dict['n_very_hard']
 
     black_overall = results_dict['black_n_correct_total'] / results_dict['n_total']
     black_easy = results_dict['black_n_correct_easy'] / results_dict['n_easy']
     black_hard = results_dict['black_n_correct_hard'] / results_dict['n_hard']
-    black_very_hard = results_dict['black_n_correct_very_hard'] / results_dict['n_very_hard']
+    if results_dict['n_very_hard'] == 0:
+        black_very_hard = np.nan
+    else:
+        black_very_hard = results_dict['black_n_correct_very_hard'] / results_dict['n_very_hard']
+
     sb += (
         '  Accuracy\n'
         '||            || Overall    || Easy       || Hard       || Very Hard  ||\n'
