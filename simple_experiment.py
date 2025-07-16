@@ -32,7 +32,9 @@ def main():
 
     grader_choices = {
         'ShallowDecisionTree': shallow_decision_tree_classifier,
-        'XGBoost': OptunaXGBoostClassifier,
+        'MediumDecisionTree': medium_decision_tree_classifier,
+        'DeepDecisionTree': deep_decision_tree_classifier,
+        # 'XGBoost': OptunaXGBoostClassifier,
     }
 
     exp = ExperimentClassification(glass_box_choices, black_box_choices, grader_choices, settings)

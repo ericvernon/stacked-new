@@ -4,7 +4,7 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from pathlib import Path
-from sklearn.model_selection import RepeatedStratifiedKFold, RepeatedKFold
+from sklearn.model_selection import RepeatedStratifiedKFold, RepeatedKFold, train_test_split
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 from .lib import Settings, DIFFICULTY_EASY, DIFFICULTY_HARD, DIFFICULTY_VERY_HARD
@@ -52,18 +52,21 @@ class Experiment(ABC):
             mms.fit(X_train)
             X_train, X_test = mms.transform(X_train), mms.transform(X_test)
 
+            X_subtrain, X_calibration, y_subtrain, y_calibration = train_test_split(
+                X_train, y_train, test_size=0.3, random_state=0, stratify=y_train)
+
             # The glass/black box models are independent of the grader --
             # Train + save (in memory) these first, so we can test them with multiple graders without retraining
             glass_box_models = {}
             for name, model_fn in self._glass_box_choices.items():
                 model = model_fn(n_jobs=self._settings.n_jobs)
-                model.fit(X_train, y_train)
+                model.fit(X_subtrain, y_subtrain)
                 glass_box_models[name] = model
 
             black_box_models = {}
             for name, model_fn in self._black_box_choices.items():
                 model = model_fn(n_jobs=self._settings.n_jobs)
-                model.fit(X_train, y_train)
+                model.fit(X_subtrain, y_subtrain)
                 black_box_models[name] = model
 
             # Now loop through all combinations we're interested in
@@ -73,14 +76,14 @@ class Experiment(ABC):
             for glass_box_name, glass_box_model in glass_box_models.items():
                 for grader_name, grader_fn in self._grader_choices.items():
                     # The binary grader only depends on the glass box, so train it once
-                    b_grader_x, b_grader_y = self.get_binary_grader_data(glass_box_model, X_train, y_train)
+                    b_grader_x, b_grader_y = self.get_binary_grader_data(glass_box_model, X_calibration, y_calibration)
                     binary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
                     binary_grader_model.fit(b_grader_x, b_grader_y)
 
                     for black_box_name, black_box_model in black_box_models.items():
                         # The ternary grader is dependent on *both* base classifiers
                         t_grader_x, t_grader_y = self.get_ternary_grader_data(glass_box_model, black_box_model,
-                                                                              X_train, y_train)
+                                                                              X_calibration, y_calibration)
                         ternary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
                         ternary_grader_model.fit(t_grader_x, t_grader_y)
 

@@ -32,6 +32,17 @@ def medium_decision_tree_classifier(n_jobs=None):
     )
 
 
+def deep_decision_tree_classifier(n_jobs=None):
+    return GridSearchCV(
+        estimator=DecisionTreeClassifier(random_state=19),
+        cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
+        param_grid={
+            "max_depth": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        },
+        n_jobs=n_jobs
+    )
+
+
 def shallow_decision_tree_regressor(n_jobs=None):
     return GridSearchCV(
         estimator=DecisionTreeRegressor(random_state=19),
