@@ -41,55 +41,53 @@ def parse_results_file(results_file: Path):
     """
     df = pd.read_csv(results_file)
 
-    hybrid_n_correct_total = np.count_nonzero(
-        (df['y_glass'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_EASY)
-    ) + np.count_nonzero(
-        (df['y_black'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_HARD)
-    )
+    IS_EASY = (df['switch_grader'] == DIFFICULTY_EASY) & (df['reject_grader'] == DIFFICULTY_EASY)
+    IS_HARD = (df['switch_grader'] == DIFFICULTY_HARD) & (df['reject_grader'] == DIFFICULTY_EASY)
+    IS_VERY_HARD = df['reject_grader'] == DIFFICULTY_HARD
+
     hybrid_n_correct_easy = np.count_nonzero(
         (df['y_glass'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_EASY)
+        IS_EASY
     )
     hybrid_n_correct_hard = np.count_nonzero(
         (df['y_black'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_HARD)
+        IS_HARD
     )
-    hybrid_n_reject = np.count_nonzero(df['y_grader'] == DIFFICULTY_VERY_HARD)
+    hybrid_n_correct_total = hybrid_n_correct_easy + hybrid_n_correct_hard
+    hybrid_n_reject = np.count_nonzero(IS_VERY_HARD)
 
     glass_n_correct_total = np.count_nonzero(df['y_glass'] == df['y_truth'])
     glass_n_correct_easy = np.count_nonzero(
         (df['y_glass'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_EASY)
+        IS_EASY
     )
     glass_n_correct_hard = np.count_nonzero(
         (df['y_glass'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_HARD)
+        IS_HARD
     )
     glass_n_correct_very_hard = np.count_nonzero(
         (df['y_glass'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_VERY_HARD)
+        IS_VERY_HARD
     )
 
     black_n_correct_total = np.count_nonzero(df['y_black'] == df['y_truth'])
     black_n_correct_easy = np.count_nonzero(
         (df['y_black'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_EASY)
+        IS_EASY
     )
     black_n_correct_hard = np.count_nonzero(
         (df['y_black'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_HARD)
+        IS_HARD
     )
     black_n_correct_very_hard = np.count_nonzero(
         (df['y_black'] == df['y_truth']) &
-        (df['y_grader'] == DIFFICULTY_VERY_HARD)
+        IS_VERY_HARD
     )
 
     n_total = df.shape[0]
-    n_easy = np.count_nonzero(df['y_grader'] == DIFFICULTY_EASY)
-    n_hard = np.count_nonzero(df['y_grader'] == DIFFICULTY_HARD)
-    n_very_hard = np.count_nonzero(df['y_grader'] == DIFFICULTY_VERY_HARD)
+    n_easy = np.count_nonzero(IS_EASY)
+    n_hard = np.count_nonzero(IS_HARD)
+    n_very_hard = np.count_nonzero(IS_VERY_HARD)
 
     return {
         'hybrid_n_correct_total': hybrid_n_correct_total,

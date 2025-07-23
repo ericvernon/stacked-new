@@ -11,7 +11,7 @@ from .lib import Settings, DIFFICULTY_EASY, DIFFICULTY_HARD, DIFFICULTY_VERY_HAR
 from .data import load_dataset
 
 
-def save_results(path, X, y_truth, glass_box_model, black_box_model, grader_model, save_X=False):
+def save_results_switching(path, X, y_truth, glass_box_model, black_box_model, switch_grader, reject_grader, save_X=False):
     n_features = X.shape[1]
     if save_X:
         df = pd.DataFrame(X, index=None, columns=[f'X_{i}' for i in range(n_features)])
@@ -20,7 +20,8 @@ def save_results(path, X, y_truth, glass_box_model, black_box_model, grader_mode
     df['y_truth'] = y_truth
     df['y_glass'] = glass_box_model.predict(X)
     df['y_black'] = black_box_model.predict(X)
-    df['y_grader'] = grader_model.predict(X)
+    df['switch_grader'] = switch_grader.predict(X)
+    df['reject_grader'] = reject_grader.predict(X)
     df.to_csv(path, index=False)
 
 
@@ -76,47 +77,32 @@ class Experiment(ABC):
             for glass_box_name, glass_box_model in glass_box_models.items():
                 for grader_name, grader_fn in self._grader_choices.items():
                     # The binary grader only depends on the glass box, so train it once
-                    b_grader_x, b_grader_y = self.get_binary_grader_data(glass_box_model, X_calibration, y_calibration)
-                    binary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
-                    binary_grader_model.fit(b_grader_x, b_grader_y)
+                    switch_grader_x, switch_grader_y = self.get_grader_data(glass_box_model, X_calibration, y_calibration)
+                    switch_grader = grader_fn(n_jobs=self._settings.n_jobs)
+                    switch_grader.fit(switch_grader_x, switch_grader_y)
 
                     for black_box_name, black_box_model in black_box_models.items():
-                        # The ternary grader is dependent on *both* base classifiers
-                        t_grader_x, t_grader_y = self.get_ternary_grader_data(glass_box_model, black_box_model,
-                                                                              X_calibration, y_calibration)
-                        ternary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
-                        ternary_grader_model.fit(t_grader_x, t_grader_y)
 
-                        save_results(
-                            result_path /
-                            f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-train-binary.txt',
-                            X_train, y_train, glass_box_model, black_box_model, binary_grader_model,
-                            self._settings.save_X
-                        )
+                        reject_grader_x, reject_grader_y = self.get_grader_data(black_box_model, X_calibration, y_calibration)
+                        reject_grader = grader_fn(n_jobs=self._settings.n_jobs)
+                        reject_grader.fit(reject_grader_x, reject_grader_y)
 
-                        save_results(
-                            result_path /
-                            f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-test-binary.txt',
-                            X_test, y_test, glass_box_model, black_box_model, binary_grader_model,
-                            self._settings.save_X
-                        )
-
-                        save_results(
+                        save_results_switching(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-train-ternary.txt',
-                            X_train, y_train, glass_box_model, black_box_model, ternary_grader_model,
+                            X_train, y_train, glass_box_model, black_box_model, switch_grader, reject_grader,
                             self._settings.save_X
                         )
 
-                        save_results(
+                        save_results_switching(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-test-ternary.txt',
-                            X_test, y_test, glass_box_model, black_box_model, ternary_grader_model,
+                            X_test, y_test, glass_box_model, black_box_model, switch_grader, reject_grader,
                             self._settings.save_X
                         )
 
     @abstractmethod
-    def get_binary_grader_data(self, glass_box_model, X_train, y_train):
+    def get_grader_data(self, glass_box_model, X_train, y_train):
         """
         Get data for the basic, 2-class grader
         0: Easy (Use b_easy)
@@ -125,7 +111,7 @@ class Experiment(ABC):
         pass
 
     @abstractmethod
-    def get_ternary_grader_data(self, glass_box_model, black_box_model, X_train, y_train):
+    def get_reject_grader_data(self, glass_box_model, black_box_model, X_train, y_train):
         """
         Get data for the 3-class grader extension
         0: Easy (Use b_easy)
@@ -140,7 +126,7 @@ class ExperimentClassification(Experiment):
         super().__init__(glass_box_choices, black_box_choices, grader_choices, settings)
         self._split_fn = RepeatedStratifiedKFold
 
-    def get_binary_grader_data(self, glass_box_model, X_train, y_train):
+    def get_grader_data(self, glass_box_model, X_train, y_train):
         predict_train = glass_box_model.predict(X_train)
         wrong_idx = (predict_train != y_train).astype(int)
 
@@ -155,7 +141,7 @@ class ExperimentClassification(Experiment):
             smote = SMOTE(k_neighbors=k_neighbors, random_state=0)
             return smote.fit_resample(X_train, wrong_idx)
 
-    def get_ternary_grader_data(self, glass_box_model, black_box_model, X_train, y_train):
+    def get_reject_grader_data(self, glass_box_model, black_box_model, X_train, y_train):
         # Patterns which the black box cannot classify are always very hard, regardless of the glass box
         #   (i.e. we use the following confusion matrix:)
         #                           Black Box
@@ -194,7 +180,7 @@ class ExperimentRegression(Experiment):
         super().__init__(glass_box_choices, black_box_choices, grader_choices, settings)
         self._split_fn = RepeatedKFold
 
-    def get_binary_grader_data(self, glass_box_model, X_train, y_train, percentile=50):
+    def get_grader_data(self, glass_box_model, X_train, y_train, percentile=50):
         predict_train = glass_box_model.predict(X_train)
         square_error = np.square(predict_train - y_train)
         hard_threshold = np.percentile(square_error, percentile)
@@ -205,7 +191,7 @@ class ExperimentRegression(Experiment):
         x2, y2 = smote.fit_resample(X_train, is_hard)
         return x2, y2
 
-    def get_ternary_grader_data(self, glass_box_model, black_box_model, X_train, y_train, percentile=50):
+    def get_reject_grader_data(self, glass_box_model, black_box_model, X_train, y_train, percentile=50):
         n = X_train.shape[0]
         results = np.zeros((n,), dtype=np.int64)
 
