@@ -119,6 +119,9 @@ class OptunaXGBoost:
     def predict(self, X):
         return self._model.predict(X)
 
+    def score(self, X, y):
+        return self._model.score(X, y)
+
 
 class OptunaXGBoostClassifier(OptunaXGBoost):
     def __init__(self, n_trials=100, n_jobs=1):

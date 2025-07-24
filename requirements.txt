@@ -1,8 +1,11 @@
 pandas
 numpy
-# As of Dec 21, the current XGB release is not compatible with sklearn 1.6
+# As of Dec 21 (2024), the current XGB release is not compatible with sklearn 1.6
 scikit-learn~=1.5.0
 xgboost
 ucimlrepo
 imbalanced-learn
 optuna
+# "Ideally" the experiment code is segmented from Jupyter, matplotlib, etc... but it's not worth the mental overhead
+jupyter
+matplotlib

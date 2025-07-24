@@ -41,7 +41,8 @@ def main():
     output_path = Path('./output/results/simple_experiment') / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     output_path.mkdir(parents=True)
 
-    dataset_ids = [17, 43, 52, 94, 96, 151, 174, 176, 267]
+#    dataset_ids = [17, 43, 52, 94, 96, 151, 174, 176, 267]
+    dataset_ids = [451, 212, 537, 827, 43, 17, 891, 519, 174, 863, 890, 887]
     for dataset_id in dataset_ids:
         print(f'.... {dataset_id} ...')
         exp.run_experiment(dataset_id, output_path)

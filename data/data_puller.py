@@ -49,7 +49,6 @@ def fetch_uci_19():
     )
     return dataset
 
-
 def fetch_uci_225():
     dataset = fetch_ucirepo(id=225)
     le = LabelEncoder()
@@ -113,6 +112,7 @@ def main():
         52,  # Ionosphere
         59,  # Letter Recognition
         60,  # Liver Disorders
+        63,  # Lymphography
         78,  # Page Blocks Classification
         94,  # spambase
         96,  # SPECTF Heart
@@ -123,26 +123,34 @@ def main():
         174,  # Parkinsons
         176,  # Blood Transfusion Service Center
         186,  # Wine quality
+        212,  # Vertebral Column
         225,  # ILPD (Indian Liver Patient Dataset)
         '242a',  # Energy Efficiency
         '242b',  # Energy Efficiency
         267,  # Banknote Authentication
         291,  # Airfoil Self-Noise
         294,  # Combined Cycle Power Plant
+        329,  # Diabetic Retinopathy Debrecen
         332,  # Online news popularity
         372,  # HTRU2
         451,  # Breast Cancer Coimbra
         464,  # Superconductivity Data
         477,  # Real Estate Valuation
         519,  # Heart Failure Clinical Records
+        537,  # Cervical Cancer Risk
         545,  # Rice (Cammeo and Osmancik)
         563,  # Iranian Churn
         572,  # Taiwanese Bankruptcy Prediction
         602,  # Dry Bean
         722,  # NATICUSdroid (Android Permissions)
+        732,  # DARWIN (Alzheimer's)
+        759,  # Glioma Grading Clinical and Mutation Features
         827,  # Sepsis Survival Minimal Clinical Records
         850,  # Raisin
         891,  # CDC Diabetes Health Indicators
+        863,  # Maternal Health Risk
+        887,  # National Health and Nutrition Health Survey
+        890,  # AIDS Clinical Trials
     ]
     for dataset in datasets:
         download_uci(dataset)
