@@ -6,3 +6,6 @@ xgboost
 ucimlrepo
 imbalanced-learn
 optuna
+jupyter
+matplotlib
+tqdm
