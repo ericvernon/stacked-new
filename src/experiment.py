@@ -4,7 +4,7 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from pathlib import Path
-from sklearn.model_selection import RepeatedStratifiedKFold, RepeatedKFold, train_test_split
+from sklearn.model_selection import RepeatedStratifiedKFold, RepeatedKFold, train_test_split, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 from .lib import Settings, DIFFICULTY_EASY, DIFFICULTY_HARD, DIFFICULTY_VERY_HARD
@@ -52,71 +52,83 @@ class Experiment(ABC):
             mms.fit(X_train)
             X_train, X_test = mms.transform(X_train), mms.transform(X_test)
 
-            X_subtrain, X_calibration, y_subtrain, y_calibration = train_test_split(
-                X_train, y_train, test_size=0.3, random_state=0, stratify=y_train)
-
             # The glass/black box models are independent of the grader --
             # Train + save (in memory) these first, so we can test them with multiple graders without retraining
             glass_box_models = {}
             for name, model_fn in self._glass_box_choices.items():
                 model = model_fn(n_jobs=self._settings.n_jobs)
-                model.fit(X_subtrain, y_subtrain)
-                glass_box_models[name] = model
+                model_wrong_idx = self.collect_wrong_indices(model_fn, X_train, y_train)
+                model.fit(X_train, y_train)
+                glass_box_models[name] = {
+                    'function': model_fn,
+                    'wrong_idx': model_wrong_idx,
+                    'trained_model': model,
+                }
 
             black_box_models = {}
             for name, model_fn in self._black_box_choices.items():
                 model = model_fn(n_jobs=self._settings.n_jobs)
-                model.fit(X_subtrain, y_subtrain)
-                black_box_models[name] = model
+                model_wrong_idx = self.collect_wrong_indices(model_fn, X_train, y_train)
+                model.fit(X_train, y_train)
+                black_box_models[name] = {
+                    'function': model_fn,
+                    'wrong_idx': model_wrong_idx,
+                    'trained_model': model,
+                }
 
             # Now loop through all combinations we're interested in
             # One option would be to precompute the graders, which makes the nested for loops a little cleaner,
             #   but since the grades are dependent on the base classifiers, that
             #   introduces potentially annoying/confusing data structures for caching them...
-            for glass_box_name, glass_box_model in glass_box_models.items():
+            for glass_box_name, glass_box_model_info in glass_box_models.items():
                 for grader_name, grader_fn in self._grader_choices.items():
                     # The binary grader only depends on the glass box, so train it once
-                    b_grader_x, b_grader_y = self.get_binary_grader_data(glass_box_model, X_calibration, y_calibration)
+                    b_grader_x, b_grader_y = self.get_binary_grader_data(glass_box_model_info['wrong_idx'], X_train)
                     binary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
                     binary_grader_model.fit(b_grader_x, b_grader_y)
 
-                    for black_box_name, black_box_model in black_box_models.items():
+                    for black_box_name, black_box_model_info in black_box_models.items():
                         # The ternary grader is dependent on *both* base classifiers
-                        t_grader_x, t_grader_y = self.get_ternary_grader_data(glass_box_model, black_box_model,
-                                                                              X_calibration, y_calibration)
+                        t_grader_x, t_grader_y = self.get_ternary_grader_data(glass_box_model_info['wrong_idx'],
+                                                                              black_box_model_info['wrong_idx'],
+                                                                              X_train)
                         ternary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
                         ternary_grader_model.fit(t_grader_x, t_grader_y)
 
                         save_results(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-train-binary.txt',
-                            X_train, y_train, glass_box_model, black_box_model, binary_grader_model,
-                            self._settings.save_X
+                            X_train, y_train, glass_box_model_info['trained_model'],
+                            black_box_model_info['trained_model'], binary_grader_model, self._settings.save_X
                         )
 
                         save_results(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-test-binary.txt',
-                            X_test, y_test, glass_box_model, black_box_model, binary_grader_model,
-                            self._settings.save_X
+                            X_test, y_test, glass_box_model_info['trained_model'],
+                            black_box_model_info['trained_model'], binary_grader_model, self._settings.save_X
                         )
 
                         save_results(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-train-ternary.txt',
-                            X_train, y_train, glass_box_model, black_box_model, ternary_grader_model,
-                            self._settings.save_X
+                            X_train, y_train, glass_box_model_info['trained_model'],
+                            black_box_model_info['trained_model'], ternary_grader_model, self._settings.save_X
                         )
 
                         save_results(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-test-ternary.txt',
-                            X_test, y_test, glass_box_model, black_box_model, ternary_grader_model,
-                            self._settings.save_X
+                            X_test, y_test, glass_box_model_info['trained_model'],
+                            black_box_model_info['trained_model'], ternary_grader_model, self._settings.save_X
                         )
 
     @abstractmethod
-    def get_binary_grader_data(self, glass_box_model, X_train, y_train):
+    def collect_wrong_indices(self, model_function, X_train, y_train):
+        pass
+
+    @abstractmethod
+    def get_binary_grader_data(self, wrong_idx, X_train, y_train):
         """
         Get data for the basic, 2-class grader
         0: Easy (Use b_easy)
@@ -140,22 +152,22 @@ class ExperimentClassification(Experiment):
         super().__init__(glass_box_choices, black_box_choices, grader_choices, settings)
         self._split_fn = RepeatedStratifiedKFold
 
-    def get_binary_grader_data(self, glass_box_model, X_train, y_train):
-        predict_train = glass_box_model.predict(X_train)
-        wrong_idx = (predict_train != y_train).astype(int)
-
-        n_wrong = np.count_nonzero(wrong_idx)
+    def get_binary_grader_data(self, wrong_idx, X_train):
+        n_patterns = X_train.shape[0]
+        n_wrong = len(wrong_idx)
+        difficulty = np.full(shape=(n_patterns,), fill_value=DIFFICULTY_EASY)
+        difficulty[np.array(list(wrong_idx))] = DIFFICULTY_HARD
         if n_wrong == 0 or n_wrong == X_train.shape[0]:
-            return X_train.copy(), wrong_idx
+            return X_train.copy(), difficulty
         elif n_wrong == 1:
             os = RandomOverSampler(random_state=0)
-            return os.fit_resample(X_train, wrong_idx)
+            return os.fit_resample(X_train, difficulty)
         else:
             k_neighbors = min(n_wrong - 1, 5)
             smote = SMOTE(k_neighbors=k_neighbors, random_state=0)
-            return smote.fit_resample(X_train, wrong_idx)
+            return smote.fit_resample(X_train, difficulty)
 
-    def get_ternary_grader_data(self, glass_box_model, black_box_model, X_train, y_train):
+    def get_ternary_grader_data(self, glass_box_wrong, black_box_wrong, X_train):
         # Patterns which the black box cannot classify are always very hard, regardless of the glass box
         #   (i.e. we use the following confusion matrix:)
         #                           Black Box
@@ -163,30 +175,36 @@ class ExperimentClassification(Experiment):
         # Glass Box Correct         Easy            Very Hard
         #           Incorrect       Hard            Very Hard
         #
-        n = X_train.shape[0]
-        results = np.full((n,),  fill_value=DIFFICULTY_EASY, dtype=np.int64)
+        n_patterns = X_train.shape[0]
+        difficulty = np.full(shape=(n_patterns,),  fill_value=DIFFICULTY_EASY, dtype=np.int64)
 
-        predict_easy = glass_box_model.predict(X_train)
-        hard_idx = predict_easy != y_train
-        results[hard_idx] = DIFFICULTY_HARD
+        difficulty[np.array(list(glass_box_wrong))] = DIFFICULTY_HARD
+        difficulty[np.array(list(black_box_wrong))] = DIFFICULTY_VERY_HARD
 
-        predict_hard = black_box_model.predict(X_train)
-        very_hard_idx = predict_hard != y_train
-        results[very_hard_idx] = DIFFICULTY_VERY_HARD
-
-        bins = np.bincount(results)
+        bins = np.bincount(difficulty)
         if bins.size < 2:
             # This can happen if all patterns are "easy"... bincount will return like [100], instead of [100, 0, 0]
-            return X_train.copy(), results
+            return X_train.copy(), difficulty
 
         min_bin = np.min(bins)
         if min_bin < 2:  # i.e. there exists a bin with less than 2 patterns, which makes SMOTE impossible
             os = RandomOverSampler(random_state=0)
-            return os.fit_resample(X_train, results)
+            return os.fit_resample(X_train, difficulty)
         else:
             k_neighbors = min(min_bin - 1, 5)
             smote = SMOTE(k_neighbors=k_neighbors)
-            return smote.fit_resample(X_train, results)
+            return smote.fit_resample(X_train, difficulty)
+
+    def collect_wrong_indices(self, model_function, X_train, y_train):
+        kfold = StratifiedKFold(n_splits=4, random_state=0, shuffle=True)
+        all_incorrect_idx = set()
+        for data_split_idx, (train_idx, calibration_idx) in enumerate(kfold.split(X_train, y_train)):
+            model = model_function(n_jobs=self._settings.n_jobs)
+            model.fit(X_train[train_idx], y_train[train_idx])
+            wrong_idx_within_calibration = model.predict(X_train[calibration_idx]) != y_train[calibration_idx]
+            wrong_idx_within_training = calibration_idx[wrong_idx_within_calibration]
+            all_incorrect_idx.update(wrong_idx_within_training)
+        return all_incorrect_idx
 
 
 class ExperimentRegression(Experiment):
