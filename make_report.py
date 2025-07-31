@@ -28,7 +28,7 @@ results_keys = [
 
 
 def main():
-    experiment_name = 'simple_experiment/20250716-143515'
+    experiment_name = 'maternal_health_risk_5x3/20250730-140951'
 
     reports_path = reports_root / experiment_name
     reports_path.mkdir(exist_ok=True, parents=True)

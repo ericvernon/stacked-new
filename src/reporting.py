@@ -40,7 +40,10 @@ def parse_results_file(results_file: Path):
     :return: dict
     """
     df = pd.read_csv(results_file)
+    return parse_results_df(df)
 
+
+def parse_results_df(df: pd.DataFrame):
     hybrid_n_correct_total = np.count_nonzero(
         (df['y_glass'] == df['y_truth']) &
         (df['y_grader'] == DIFFICULTY_EASY)

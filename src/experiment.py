@@ -57,7 +57,7 @@ class Experiment(ABC):
             glass_box_models = {}
             for name, model_fn in self._glass_box_choices.items():
                 model = model_fn(n_jobs=self._settings.n_jobs)
-                model_wrong_idx = self.collect_wrong_indices(model_fn, X_train, y_train)
+                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings)
                 model.fit(X_train, y_train)
                 glass_box_models[name] = {
                     'function': model_fn,
@@ -68,7 +68,7 @@ class Experiment(ABC):
             black_box_models = {}
             for name, model_fn in self._black_box_choices.items():
                 model = model_fn(n_jobs=self._settings.n_jobs)
-                model_wrong_idx = self.collect_wrong_indices(model_fn, X_train, y_train)
+                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings)
                 model.fit(X_train, y_train)
                 black_box_models[name] = {
                     'function': model_fn,
@@ -83,13 +83,13 @@ class Experiment(ABC):
             for glass_box_name, glass_box_model_info in glass_box_models.items():
                 for grader_name, grader_fn in self._grader_choices.items():
                     # The binary grader only depends on the glass box, so train it once
-                    b_grader_x, b_grader_y = self.get_binary_grader_data(glass_box_model_info['wrong_idx'], X_train)
+                    b_grader_x, b_grader_y = get_binary_grader_data(glass_box_model_info['wrong_idx'], X_train)
                     binary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
                     binary_grader_model.fit(b_grader_x, b_grader_y)
 
                     for black_box_name, black_box_model_info in black_box_models.items():
                         # The ternary grader is dependent on *both* base classifiers
-                        t_grader_x, t_grader_y = self.get_ternary_grader_data(glass_box_model_info['wrong_idx'],
+                        t_grader_x, t_grader_y = get_ternary_grader_data(glass_box_model_info['wrong_idx'],
                                                                               black_box_model_info['wrong_idx'],
                                                                               X_train)
                         ternary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
@@ -123,134 +123,77 @@ class Experiment(ABC):
                             black_box_model_info['trained_model'], ternary_grader_model, self._settings.save_X
                         )
 
-    @abstractmethod
-    def collect_wrong_indices(self, model_function, X_train, y_train):
-        pass
-
-    @abstractmethod
-    def get_binary_grader_data(self, wrong_idx, X_train, y_train):
-        """
-        Get data for the basic, 2-class grader
-        0: Easy (Use b_easy)
-        1: Hard (Use b_hard)
-        """
-        pass
-
-    @abstractmethod
-    def get_ternary_grader_data(self, glass_box_model, black_box_model, X_train, y_train):
-        """
-        Get data for the 3-class grader extension
-        0: Easy (Use b_easy)
-        1: Hard (Use b_hard)
-        2: Very hard (Reject)
-        """
-        pass
-
 
 class ExperimentClassification(Experiment):
     def __init__(self, glass_box_choices: dict, black_box_choices: dict, grader_choices: dict, settings: Settings):
         super().__init__(glass_box_choices, black_box_choices, grader_choices, settings)
         self._split_fn = RepeatedStratifiedKFold
 
-    def get_binary_grader_data(self, wrong_idx, X_train):
-        n_patterns = X_train.shape[0]
-        n_wrong = len(wrong_idx)
-        difficulty = np.full(shape=(n_patterns,), fill_value=DIFFICULTY_EASY)
-        difficulty[np.array(list(wrong_idx))] = DIFFICULTY_HARD
-        if n_wrong == 0 or n_wrong == X_train.shape[0]:
-            return X_train.copy(), difficulty
-        elif n_wrong == 1:
-            os = RandomOverSampler(random_state=0)
-            return os.fit_resample(X_train, difficulty)
-        else:
-            k_neighbors = min(n_wrong - 1, 5)
-            smote = SMOTE(k_neighbors=k_neighbors, random_state=0)
-            return smote.fit_resample(X_train, difficulty)
 
-    def get_ternary_grader_data(self, glass_box_wrong, black_box_wrong, X_train):
-        # Patterns which the black box cannot classify are always very hard, regardless of the glass box
-        #   (i.e. we use the following confusion matrix:)
-        #                           Black Box
-        #                           Correct         Incorrect
-        # Glass Box Correct         Easy            Very Hard
-        #           Incorrect       Hard            Very Hard
-        #
-        n_patterns = X_train.shape[0]
-        difficulty = np.full(shape=(n_patterns,),  fill_value=DIFFICULTY_EASY, dtype=np.int64)
-
-        difficulty[np.array(list(glass_box_wrong))] = DIFFICULTY_HARD
-        difficulty[np.array(list(black_box_wrong))] = DIFFICULTY_VERY_HARD
-
-        bins = np.bincount(difficulty)
-        if bins.size < 2:
-            # This can happen if all patterns are "easy"... bincount will return like [100], instead of [100, 0, 0]
-            return X_train.copy(), difficulty
-
-        min_bin = np.min(bins)
-        if min_bin < 2:  # i.e. there exists a bin with less than 2 patterns, which makes SMOTE impossible
-            os = RandomOverSampler(random_state=0)
-            return os.fit_resample(X_train, difficulty)
-        else:
-            k_neighbors = min(min_bin - 1, 5)
-            smote = SMOTE(k_neighbors=k_neighbors)
-            return smote.fit_resample(X_train, difficulty)
-
-    def collect_wrong_indices(self, model_function, X_train, y_train):
-        kfold = StratifiedKFold(n_splits=4, random_state=0, shuffle=True)
-        all_incorrect_idx = set()
-        for data_split_idx, (train_idx, calibration_idx) in enumerate(kfold.split(X_train, y_train)):
-            model = model_function(n_jobs=self._settings.n_jobs)
-            model.fit(X_train[train_idx], y_train[train_idx])
-            wrong_idx_within_calibration = model.predict(X_train[calibration_idx]) != y_train[calibration_idx]
-            wrong_idx_within_training = calibration_idx[wrong_idx_within_calibration]
-            all_incorrect_idx.update(wrong_idx_within_training)
-        return all_incorrect_idx
+def get_binary_grader_data(wrong_idx, X_train):
+    n_patterns = X_train.shape[0]
+    n_wrong = len(wrong_idx)
+    difficulty = np.full(shape=(n_patterns,), fill_value=DIFFICULTY_EASY)
+    difficulty[np.array(list(wrong_idx))] = DIFFICULTY_HARD
+    if n_wrong == 0 or n_wrong == X_train.shape[0]:
+        return X_train.copy(), difficulty
+    elif n_wrong == 1:
+        os = RandomOverSampler(random_state=0)
+        return os.fit_resample(X_train, difficulty)
+    else:
+        k_neighbors = min(n_wrong - 1, 5)
+        smote = SMOTE(k_neighbors=k_neighbors, random_state=0)
+        return smote.fit_resample(X_train, difficulty)
 
 
-class ExperimentRegression(Experiment):
-    def __init__(self, glass_box_choices: dict, black_box_choices: dict, grader_choices: dict, settings: Settings):
-        super().__init__(glass_box_choices, black_box_choices, grader_choices, settings)
-        self._split_fn = RepeatedKFold
+def get_ternary_grader_data(glass_box_wrong, black_box_wrong, X_train, skip_oversampling=False):
+    # Patterns which the black box cannot classify are always very hard, regardless of the glass box
+    #   (i.e. we use the following confusion matrix:)
+    #                           Black Box
+    #                           Correct         Incorrect
+    # Glass Box Correct         Easy            Very Hard
+    #           Incorrect       Hard            Very Hard
+    #
+    n_patterns = X_train.shape[0]
+    n_set = set(np.arange(n_patterns))
 
-    def get_binary_grader_data(self, glass_box_model, X_train, y_train, percentile=50):
-        predict_train = glass_box_model.predict(X_train)
-        square_error = np.square(predict_train - y_train)
-        hard_threshold = np.percentile(square_error, percentile)
-        is_hard = (square_error > hard_threshold).astype(int)
+    difficulty = np.full(shape=(n_patterns,),  fill_value=DIFFICULTY_EASY, dtype=np.int64)
 
-        # This will just add 0-1 synthetic "hard" patterns...
-        smote = SMOTE(k_neighbors=5, random_state=0)
-        x2, y2 = smote.fit_resample(X_train, is_hard)
-        return x2, y2
+    black_box_correct = n_set.difference(black_box_wrong)
+    hard_set = black_box_correct.intersection(glass_box_wrong)
+    difficulty[np.array(list(hard_set))] = DIFFICULTY_HARD
 
-    def get_ternary_grader_data(self, glass_box_model, black_box_model, X_train, y_train, percentile=50):
-        n = X_train.shape[0]
-        results = np.zeros((n,), dtype=np.int64)
+    very_hard_set = glass_box_wrong.intersection(black_box_wrong)
+    difficulty[np.array(list(very_hard_set))] = DIFFICULTY_VERY_HARD
 
-        glass_box_predictions = glass_box_model.predict(X_train)
-        gb_square_error = np.square(glass_box_predictions - y_train)
-        gb_threshold = np.percentile(gb_square_error, percentile)
+    bins = np.bincount(difficulty)
+    if bins.size < 2 or skip_oversampling:
+        # This can happen if all patterns are "easy"... bincount will return like [100], instead of [100, 0, 0]
+        return X_train.copy(), difficulty
 
-        black_box_predictions = black_box_model.predict(X_train)
-        bb_square_error = np.square(black_box_predictions - y_train)
-        bb_threshold = np.percentile(bb_square_error, percentile)
+    min_bin = np.min(bins)
+    if min_bin < 2:  # i.e. there exists a bin with less than 2 patterns, which makes SMOTE impossible
+        os = RandomOverSampler(random_state=0)
+        return os.fit_resample(X_train, difficulty)
+    else:
+        k_neighbors = min(min_bin - 1, 5)
+        smote = SMOTE(k_neighbors=k_neighbors, random_state=0)
+        return smote.fit_resample(X_train, difficulty)
 
-        hard_idx = gb_square_error > gb_threshold
-        results[hard_idx] = DIFFICULTY_HARD
 
-        vhard_idx = bb_square_error > bb_threshold
-        results[vhard_idx] = DIFFICULTY_VERY_HARD
+def collect_wrong_indices(model_function, X_train, y_train, settings=None):
+    if settings:
+        n_jobs = settings.n_jobs
+    else:
+        n_jobs = 1
 
-        bins = np.bincount(results)
-        if bins.size < 2:
-            # This can happen if all patterns are "easy"... bincount will return like [100], instead of [100, 0, 0]
-            return X_train.copy(), results
+    kfold = StratifiedKFold(n_splits=4, random_state=0, shuffle=True)
+    all_incorrect_idx = set()
+    for data_split_idx, (train_idx, calibration_idx) in enumerate(kfold.split(X_train, y_train)):
+        model = model_function(n_jobs=n_jobs)
+        model.fit(X_train[train_idx], y_train[train_idx])
+        wrong_idx_within_calibration = model.predict(X_train[calibration_idx]) != y_train[calibration_idx]
+        wrong_idx_within_training = calibration_idx[wrong_idx_within_calibration]
+        all_incorrect_idx.update(wrong_idx_within_training)
+    return all_incorrect_idx
 
-        min_bin = np.min(bins)
-        if min_bin < 2:  # i.e. there exists a bin with less than 2 patterns, which makes SMOTE impossible
-            os = RandomOverSampler(random_state=0)
-            return os.fit_resample(X_train, results)
-        else:
-            k_neighbors = min(min_bin - 1, 5)
-            smote = SMOTE(k_neighbors=k_neighbors)
-            return smote.fit_resample(X_train, results)

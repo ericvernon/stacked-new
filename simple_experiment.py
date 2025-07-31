@@ -17,8 +17,8 @@ from src.models import *
 def main():
     print("Starting mini-experiment...")
     settings = Settings(
-        n_repeats=1,
-        n_splits=4,
+        n_repeats=3,
+        n_splits=5,
         n_jobs=1,
     )
 
@@ -38,10 +38,11 @@ def main():
     }
 
     exp = ExperimentClassification(glass_box_choices, black_box_choices, grader_choices, settings)
-    output_path = Path('./output/results/simple_experiment') / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    output_path = Path('./output/results/maternal_health_risk_5x3') / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     output_path.mkdir(parents=True)
 
-    dataset_ids = [17, 43, 52, 94, 96, 151, 174, 176, 267]
+    #dataset_ids = [17, 43, 52, 94, 96, 151, 174, 176, 267]
+    dataset_ids = [863]
     for dataset_id in dataset_ids:
         print(f'.... {dataset_id} ...')
         exp.run_experiment(dataset_id, output_path)

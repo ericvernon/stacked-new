@@ -2,6 +2,7 @@
 # This is not the best "clean code"... but it is sufficient for "academic code"!
 import numpy as np
 import optuna
+from optuna.samplers import TPESampler
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, KFold, cross_val_score
@@ -12,7 +13,7 @@ from xgboost import XGBClassifier, XGBRegressor
 
 def shallow_decision_tree_classifier(n_jobs=None):
     return GridSearchCV(
-        estimator=DecisionTreeClassifier(random_state=19),
+        estimator=DecisionTreeClassifier(random_state=0),
         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
         param_grid={
             "max_depth": [1, 2, 3, 4],
@@ -23,7 +24,7 @@ def shallow_decision_tree_classifier(n_jobs=None):
 
 def medium_decision_tree_classifier(n_jobs=None):
     return GridSearchCV(
-        estimator=DecisionTreeClassifier(random_state=19),
+        estimator=DecisionTreeClassifier(random_state=0),
         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
         param_grid={
             "max_depth": [1, 2, 3, 4, 5, 6],
@@ -34,7 +35,7 @@ def medium_decision_tree_classifier(n_jobs=None):
 
 def deep_decision_tree_classifier(n_jobs=None):
     return GridSearchCV(
-        estimator=DecisionTreeClassifier(random_state=19),
+        estimator=DecisionTreeClassifier(random_state=0),
         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
         param_grid={
             "max_depth": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
@@ -45,7 +46,7 @@ def deep_decision_tree_classifier(n_jobs=None):
 
 def shallow_decision_tree_regressor(n_jobs=None):
     return GridSearchCV(
-        estimator=DecisionTreeRegressor(random_state=19),
+        estimator=DecisionTreeRegressor(random_state=0),
         cv=KFold(n_splits=5, shuffle=True, random_state=0),
         param_grid={
             "max_depth": [1, 2, 3],
@@ -56,7 +57,7 @@ def shallow_decision_tree_regressor(n_jobs=None):
 
 def medium_decision_tree_regressor(n_jobs=None):
     return GridSearchCV(
-        estimator=DecisionTreeRegressor(random_state=19),
+        estimator=DecisionTreeRegressor(random_state=0),
         cv=KFold(n_splits=5, shuffle=True, random_state=0),
         param_grid={
             "max_depth": [1, 2, 3, 4, 5, 6],
@@ -67,7 +68,7 @@ def medium_decision_tree_regressor(n_jobs=None):
 
 def random_forest_classifier(n_jobs=None):
     return GridSearchCV(
-        estimator=RandomForestClassifier(random_state=19),
+        estimator=RandomForestClassifier(random_state=0),
         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
         param_grid={
             "max_depth": [4, 8, 16, 32, 64, 128],
@@ -79,7 +80,7 @@ def random_forest_classifier(n_jobs=None):
 
 def random_forest_regressor(n_jobs=None):
     return GridSearchCV(
-        estimator=RandomForestRegressor(random_state=19),
+        estimator=RandomForestRegressor(random_state=0),
         cv=KFold(n_splits=5, shuffle=True, random_state=0),
         param_grid={
             "max_depth": [4, 8, 16, 32, 64, 128],
@@ -90,7 +91,7 @@ def random_forest_regressor(n_jobs=None):
 
 
 class OptunaXGBoost:
-    def __init__(self, n_trials=100, n_jobs=1):
+    def __init__(self, n_trials=250, n_jobs=1):
         self._model = None
         self._model_fn = None
         self._split_fn = None
@@ -106,18 +107,24 @@ class OptunaXGBoost:
                 max_depth=max_depth,
                 min_child_weight=min_child_weight,
                 gamma=gamma,
-                random_state=19,
+                random_state=0,
             )
             cv = self._split_fn(n_splits=5, shuffle=True, random_state=0)
             return cross_val_score(xgb, X, y, cv=cv).mean()
 
-        study = optuna.create_study(direction="maximize")
+        sampler = TPESampler(seed=0)
+        study = optuna.create_study(direction="maximize", sampler=sampler)
         study.optimize(fn, n_trials=self._n_trials, n_jobs=self._n_jobs)
-        self._model = self._model_fn(**study.best_params)
+        params = study.best_params
+        params['random_state'] = 0
+        self._model = self._model_fn(**params)
         self._model.fit(X, y)
 
     def predict(self, X):
         return self._model.predict(X)
+
+    def score(self, X, y):
+        return self._model.score(X, y)
 
 
 class OptunaXGBoostClassifier(OptunaXGBoost):
