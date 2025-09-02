@@ -9,3 +9,4 @@ optuna
 jupyter
 matplotlib
 tqdm
+plotly

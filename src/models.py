@@ -4,63 +4,19 @@ import numpy as np
 import optuna
 from optuna.samplers import TPESampler
 
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, KFold, cross_val_score
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, cross_val_score
+from sklearn.tree import DecisionTreeClassifier
 
-from xgboost import XGBClassifier, XGBRegressor
+from xgboost import XGBClassifier
 
 
-def shallow_decision_tree_classifier(n_jobs=None):
+def tuned_decision_tree_classifier(max_depth, n_jobs=None):
     return GridSearchCV(
         estimator=DecisionTreeClassifier(random_state=0),
-        cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
+        cv=RepeatedStratifiedKFold(n_repeats=3, n_splits=5, random_state=0),
         param_grid={
-            "max_depth": [1, 2, 3, 4],
-        },
-        n_jobs=n_jobs
-    )
-
-
-def medium_decision_tree_classifier(n_jobs=None):
-    return GridSearchCV(
-        estimator=DecisionTreeClassifier(random_state=0),
-        cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
-        param_grid={
-            "max_depth": [1, 2, 3, 4, 5, 6],
-        },
-        n_jobs=n_jobs
-    )
-
-
-def deep_decision_tree_classifier(n_jobs=None):
-    return GridSearchCV(
-        estimator=DecisionTreeClassifier(random_state=0),
-        cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
-        param_grid={
-            "max_depth": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-        },
-        n_jobs=n_jobs
-    )
-
-
-def shallow_decision_tree_regressor(n_jobs=None):
-    return GridSearchCV(
-        estimator=DecisionTreeRegressor(random_state=0),
-        cv=KFold(n_splits=5, shuffle=True, random_state=0),
-        param_grid={
-            "max_depth": [1, 2, 3],
-        },
-        n_jobs=n_jobs
-    )
-
-
-def medium_decision_tree_regressor(n_jobs=None):
-    return GridSearchCV(
-        estimator=DecisionTreeRegressor(random_state=0),
-        cv=KFold(n_splits=5, shuffle=True, random_state=0),
-        param_grid={
-            "max_depth": [1, 2, 3, 4, 5, 6],
+            "max_depth": np.arange(1, max_depth + 1),
         },
         n_jobs=n_jobs
     )
@@ -69,19 +25,7 @@ def medium_decision_tree_regressor(n_jobs=None):
 def random_forest_classifier(n_jobs=None):
     return GridSearchCV(
         estimator=RandomForestClassifier(random_state=0),
-        cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=0),
-        param_grid={
-            "max_depth": [4, 8, 16, 32, 64, 128],
-            "n_estimators": [50, 100, 150, 200, 250],
-        },
-        n_jobs=n_jobs
-    )
-
-
-def random_forest_regressor(n_jobs=None):
-    return GridSearchCV(
-        estimator=RandomForestRegressor(random_state=0),
-        cv=KFold(n_splits=5, shuffle=True, random_state=0),
+        cv=RepeatedStratifiedKFold(n_repeats=3, n_splits=5, random_state=0),
         param_grid={
             "max_depth": [4, 8, 16, 32, 64, 128],
             "n_estimators": [50, 100, 150, 200, 250],
@@ -97,8 +41,9 @@ class OptunaXGBoost:
         self._split_fn = None
         self._n_trials = n_trials
         self._n_jobs = n_jobs
+        self._study = None
 
-    def fit(self, X, y):
+    def optimize(self, X, y):
         def fn(trial):
             max_depth = trial.suggest_int("max_depth", low=4, high=128)
             min_child_weight = trial.suggest_float("min_child_weight", low=0, high=4)
@@ -109,13 +54,18 @@ class OptunaXGBoost:
                 gamma=gamma,
                 random_state=0,
             )
-            cv = self._split_fn(n_splits=5, shuffle=True, random_state=0)
+            cv = self._split_fn(n_repeats=3, n_splits=5, random_state=0)
             return cross_val_score(xgb, X, y, cv=cv).mean()
 
         sampler = TPESampler(seed=0)
         study = optuna.create_study(direction="maximize", sampler=sampler)
         study.optimize(fn, n_trials=self._n_trials, n_jobs=self._n_jobs)
-        params = study.best_params
+        self._study = study
+
+    def fit(self, X, y):
+        if self._study is None:
+            self.optimize(X, y)
+        params = self._study.best_params
         params['random_state'] = 0
         self._model = self._model_fn(**params)
         self._model.fit(X, y)
@@ -126,23 +76,13 @@ class OptunaXGBoost:
     def score(self, X, y):
         return self._model.score(X, y)
 
+    def get_study_results(self):
+        assert (self._study is not None)
+        return self._study.best_params, self._study.best_value
+
 
 class OptunaXGBoostClassifier(OptunaXGBoost):
-    def __init__(self, n_trials=100, n_jobs=1):
+    def __init__(self, n_trials=500, n_jobs=1):
         super().__init__(n_trials, n_jobs)
         self._model_fn = XGBClassifier
-        self._split_fn = StratifiedKFold
-
-
-class OptunaXGBoostRegressor(OptunaXGBoost):
-    def __init__(self, n_trials=100, n_jobs=1):
-        super().__init__(n_trials, n_jobs)
-        self._model_fn = XGBRegressor
-        self._split_fn = KFold
-
-
-def xgboost_classifier(n_trials=100, n_jobs=None):
-    return OptunaXGBoost(n_trials=n_trials, n_jobs=n_jobs)
-
-def xgboost_regressor(n_trials=100, n_jobs=None):
-    return OptunaXGBoost(n_trials=n_trials, n_jobs=n_jobs)
+        self._split_fn = RepeatedStratifiedKFold

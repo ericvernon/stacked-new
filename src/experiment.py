@@ -181,19 +181,13 @@ def get_ternary_grader_data(glass_box_wrong, black_box_wrong, X_train, skip_over
         return smote.fit_resample(X_train, difficulty)
 
 
-def collect_wrong_indices(model_function, X_train, y_train, settings=None):
-    if settings:
-        n_jobs = settings.n_jobs
-    else:
-        n_jobs = 1
-
+def collect_wrong_indices(model_function, X_train, y_train):
     kfold = StratifiedKFold(n_splits=4, random_state=0, shuffle=True)
     all_incorrect_idx = set()
     for data_split_idx, (train_idx, calibration_idx) in enumerate(kfold.split(X_train, y_train)):
-        model = model_function(n_jobs=n_jobs)
+        model = model_function()
         model.fit(X_train[train_idx], y_train[train_idx])
         wrong_idx_within_calibration = model.predict(X_train[calibration_idx]) != y_train[calibration_idx]
         wrong_idx_within_training = calibration_idx[wrong_idx_within_calibration]
         all_incorrect_idx.update(wrong_idx_within_training)
     return all_incorrect_idx
-
