@@ -10,13 +10,18 @@ from sklearn.tree import DecisionTreeClassifier
 
 from xgboost import XGBClassifier
 
+optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-def tuned_decision_tree_classifier(max_depth, n_jobs=None):
+CV_N_SPLITS = 5
+CV_N_REPEATS = 3
+
+
+def tuned_decision_tree_classifier(max_allowed_depth, n_jobs=None):
     return GridSearchCV(
         estimator=DecisionTreeClassifier(random_state=0),
-        cv=RepeatedStratifiedKFold(n_repeats=3, n_splits=5, random_state=0),
+        cv=RepeatedStratifiedKFold(n_repeats=CV_N_REPEATS, n_splits=CV_N_SPLITS, random_state=0),
         param_grid={
-            "max_depth": np.arange(1, max_depth + 1),
+            "max_depth": np.arange(1, max_allowed_depth + 1),
         },
         n_jobs=n_jobs
     )
@@ -25,7 +30,7 @@ def tuned_decision_tree_classifier(max_depth, n_jobs=None):
 def random_forest_classifier(n_jobs=None):
     return GridSearchCV(
         estimator=RandomForestClassifier(random_state=0),
-        cv=RepeatedStratifiedKFold(n_repeats=3, n_splits=5, random_state=0),
+        cv=RepeatedStratifiedKFold(n_repeats=CV_N_REPEATS, n_splits=CV_N_SPLITS, random_state=0),
         param_grid={
             "max_depth": [4, 8, 16, 32, 64, 128],
             "n_estimators": [50, 100, 150, 200, 250],
@@ -35,7 +40,7 @@ def random_forest_classifier(n_jobs=None):
 
 
 class OptunaXGBoost:
-    def __init__(self, n_trials=250, n_jobs=1):
+    def __init__(self, n_trials=500, n_jobs=1):
         self._model = None
         self._model_fn = None
         self._split_fn = None
@@ -54,12 +59,12 @@ class OptunaXGBoost:
                 gamma=gamma,
                 random_state=0,
             )
-            cv = self._split_fn(n_repeats=3, n_splits=5, random_state=0)
+            cv = self._split_fn(n_repeats=CV_N_REPEATS, n_splits=CV_N_SPLITS, random_state=0)
             return cross_val_score(xgb, X, y, cv=cv).mean()
 
         sampler = TPESampler(seed=0)
         study = optuna.create_study(direction="maximize", sampler=sampler)
-        study.optimize(fn, n_trials=self._n_trials, n_jobs=self._n_jobs)
+        study.optimize(fn, n_trials=self._n_trials, n_jobs=self._n_jobs, show_progress_bar=True)
         self._study = study
 
     def fit(self, X, y):

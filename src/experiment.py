@@ -4,7 +4,7 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from pathlib import Path
-from sklearn.model_selection import RepeatedStratifiedKFold, RepeatedKFold, train_test_split, StratifiedKFold
+from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 from .lib import Settings, DIFFICULTY_EASY, DIFFICULTY_HARD, DIFFICULTY_VERY_HARD
@@ -41,23 +41,19 @@ class Experiment(ABC):
         le = LabelEncoder()
         y = le.fit_transform(y)
 
+
+
         splitter = self._split_fn(n_repeats=self._settings.n_repeats, n_splits=self._settings.n_splits, random_state=0)
         for data_split_idx, (train_index, test_index) in enumerate(splitter.split(X, y)):
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
 
-            # Scale X values. Currently using a simple MinMaxScaler,
-            # which just moves values into the range [0, 1]
-            mms = MinMaxScaler()
-            mms.fit(X_train)
-            X_train, X_test = mms.transform(X_train), mms.transform(X_test)
-
             # The glass/black box models are independent of the grader --
             # Train + save (in memory) these first, so we can test them with multiple graders without retraining
             glass_box_models = {}
             for name, model_fn in self._glass_box_choices.items():
-                model = model_fn(n_jobs=self._settings.n_jobs)
-                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings)
+                model = model_fn()
+                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train)
                 model.fit(X_train, y_train)
                 glass_box_models[name] = {
                     'function': model_fn,
@@ -67,8 +63,8 @@ class Experiment(ABC):
 
             black_box_models = {}
             for name, model_fn in self._black_box_choices.items():
-                model = model_fn(n_jobs=self._settings.n_jobs)
-                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings)
+                model = model_fn()
+                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train)
                 model.fit(X_train, y_train)
                 black_box_models[name] = {
                     'function': model_fn,

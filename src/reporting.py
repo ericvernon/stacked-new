@@ -114,7 +114,7 @@ def parse_results_df(df: pd.DataFrame):
     }
 
 
-def text_report(results_dict):
+def results_dict_to_text(results_dict):
     sb = ''
     pct_easy = results_dict['n_easy'] / results_dict['n_total']
     pct_hard = results_dict['n_hard'] / results_dict['n_total']
