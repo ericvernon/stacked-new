@@ -1,0 +1,1 @@
+{"xgboost": {"params": {"max_depth": 93, "min_child_weight": 1.9684853643351012, "gamma": 0.0016181770622261953}, "accuracy": 0.9608333333333333, "n_trials": 500}, "decision_tree": {"params": {"max_depth": 4}, "accuracy": 0.25396666666666673, "max_allowed_depth": 4}, "timestamp": "2025-09-17 18:53:38"}

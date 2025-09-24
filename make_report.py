@@ -26,7 +26,42 @@ results_keys = [
     'n_very_hard',
     'n_total',
 ]
-experiment_name = 'Test/20250909-164320'
+dataset_names = {
+    '17': 'brst-w',
+    '19': 'car',
+    '43': 'haber',
+    '52': 'iono',
+    '59': 'letter',
+    '78': 'page',
+    '94': 'spam',
+    '96': 'sp-hrt',
+    '151': 'bench',
+    '159': 'gamma',
+    '174': 'parkns',
+    '176': 'blood',
+    '212': 'vertebr',
+    '267': 'bank',
+    '329': 'diabet',
+    '372': 'htru',
+    '451': 'brst-c',
+    '519': 'heart-f',
+    '537': 'cerv-c',
+    '545': 'rice',
+    '563': 'churn',
+    '572': 'taiwan',
+    '602': 'drybean',
+    '722': 'droid',
+    '732': 'darwin',
+    '759': 'glioma',
+    '827': 'sepsis',
+    '850': 'raisin',
+    '863': 'matern',
+    '887': 'survey',
+    '890': 'aids',
+    '891': 'cdc-d',
+}
+
+experiment_name = '5x10_Sep10/20250910-221425'
 
 
 def load_results():
@@ -87,7 +122,7 @@ def bulk_text_report(reports_path):
             f.write(report)
 
 
-def bulk_latex_report(reports_path):
+def bulk_latex_report(train_or_test):
     report = ''
     results = load_results()
     bg_key = 'decision_tree-xgboost-decision_tree-binary'
@@ -95,33 +130,35 @@ def bulk_latex_report(reports_path):
     assert(results[bg_key].keys() == results[tg_key].keys())
     dataset_ids = results[bg_key].keys()
     for dataset_id in dataset_ids:
-        report += f'{dataset_id} & '
-        binary_grader_training = latex_df_from_dict(results[bg_key][dataset_id]['train'])
-        binary_grader_testing = latex_df_from_dict(results[bg_key][dataset_id]['test'])
-        ternary_grader_training = latex_df_from_dict(results[tg_key][dataset_id]['train'])
-        ternary_grader_testing = latex_df_from_dict(results[tg_key][dataset_id]['test'])
+        if dataset_id in dataset_names:
+            dset_name = dataset_names[dataset_id]
+        else:
+            dset_name = dataset_id
+        report += f'{dset_name} & '
+        binary_grader = latex_df_from_dict(results[bg_key][dataset_id][train_or_test])
+        ternary_grader = latex_df_from_dict(results[tg_key][dataset_id][train_or_test])
 
-        report += f'{(100 * binary_grader_training["glass_accuracy"].mean()):.2f} & '
-        report += f'± {(100 * binary_grader_training["glass_accuracy"].std()):.2f} & '
+        report += f'{(100 * binary_grader["glass_accuracy"].mean()):.2f} & '
+        report += f'± {(100 * binary_grader["glass_accuracy"].std()):.2f} & '
 
-        report += f'{(100 * binary_grader_training["black_accuracy"].mean()):.2f} & '
-        report += f'± {(100 * binary_grader_training["black_accuracy"].std()):.2f} & '
+        report += f'{(100 * binary_grader["black_accuracy"].mean()):.2f} & '
+        report += f'± {(100 * binary_grader["black_accuracy"].std()):.2f} & '
 
-        report += f'{(100 * binary_grader_training["hybrid_accuracy"].mean()):.2f} & '
-        report += f'± {(100 * binary_grader_training["hybrid_accuracy"].std()):.2f} & '
+        report += f'{(100 * binary_grader["hybrid_accuracy"].mean()):.2f} & '
+        report += f'± {(100 * binary_grader["hybrid_accuracy"].std()):.2f} & '
 
-        report += f'{(100 * ternary_grader_training["hybrid_accuracy"].mean()):.2f} & '
-        report += f'± {(100 * ternary_grader_training["hybrid_accuracy"].std()):.2f} & '
+        report += f'{(100 * ternary_grader["hybrid_accuracy"].mean()):.2f} & '
+        report += f'± {(100 * ternary_grader["hybrid_accuracy"].std()):.2f} & '
 
-        report += f'{(100 * ternary_grader_training["glass_usage"].mean()):.2f} & '
-        report += f'± {(100 * ternary_grader_training["glass_usage"].std()):.2f} & '
+        report += f'{(100 * ternary_grader["glass_usage"].mean()):.2f} & '
+        report += f'± {(100 * ternary_grader["glass_usage"].std()):.2f} & '
 
-        report += f'{(100 * ternary_grader_training["black_usage"].mean()):.2f} & '
-        report += f'± {(100 * ternary_grader_training["black_usage"].std()):.2f} & '
+        report += f'{(100 * ternary_grader["black_usage"].mean()):.2f} & '
+        report += f'± {(100 * ternary_grader["black_usage"].std()):.2f} & '
 
-        report += f'{(100 * ternary_grader_training["reject_rate"].mean()):.2f} & '
-        report += f'± {(100 * ternary_grader_training["reject_rate"].std()):.2f}\\\\ \\hline'
-        print(binary_grader_training.columns)
+        report += f'{(100 * ternary_grader["reject_rate"].mean()):.2f} & '
+        report += f'± {(100 * ternary_grader["reject_rate"].std()):.2f}\\\\ \\hline'
+        report += '\n'
     print(dataset_ids)
     print(report)
     return
@@ -152,9 +189,8 @@ def latex_df_from_dict(results_dict):
 def main():
     reports_path = reports_root / experiment_name
     reports_path.mkdir(exist_ok=True, parents=True)
-
-   # bulk_text_report(reports_path)
-    bulk_latex_report(reports_path)
+    bulk_latex_report('train')
+    bulk_latex_report('test')
     print('OK')
 
 

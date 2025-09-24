@@ -6,6 +6,7 @@ from imblearn.over_sampling import SMOTE, RandomOverSampler
 from pathlib import Path
 from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from tqdm import tqdm
 
 from .lib import Settings, DIFFICULTY_EASY, DIFFICULTY_HARD, DIFFICULTY_VERY_HARD
 from .data import load_dataset
@@ -41,10 +42,10 @@ class Experiment(ABC):
         le = LabelEncoder()
         y = le.fit_transform(y)
 
-
-
         splitter = self._split_fn(n_repeats=self._settings.n_repeats, n_splits=self._settings.n_splits, random_state=0)
-        for data_split_idx, (train_index, test_index) in enumerate(splitter.split(X, y)):
+        for data_split_idx, (train_index, test_index) in enumerate(
+                tqdm(splitter.split(X, y), total=(self._settings.n_repeats*self._settings.n_splits)),
+        ):
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
 
@@ -157,10 +158,12 @@ def get_ternary_grader_data(glass_box_wrong, black_box_wrong, X_train, skip_over
 
     black_box_correct = n_set.difference(black_box_wrong)
     hard_set = black_box_correct.intersection(glass_box_wrong)
-    difficulty[np.array(list(hard_set))] = DIFFICULTY_HARD
+    if len(hard_set) > 0:
+        difficulty[np.array(list(hard_set))] = DIFFICULTY_HARD
 
     very_hard_set = glass_box_wrong.intersection(black_box_wrong)
-    difficulty[np.array(list(very_hard_set))] = DIFFICULTY_VERY_HARD
+    if len(very_hard_set) > 0:
+        difficulty[np.array(list(very_hard_set))] = DIFFICULTY_VERY_HARD
 
     bins = np.bincount(difficulty)
     if bins.size < 2 or skip_oversampling:

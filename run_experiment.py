@@ -12,7 +12,7 @@ from src.lib import Settings, write_git_info
 from src.models import tuned_decision_tree_classifier, OptunaXGBoostClassifier
 from src.param_cache import parameter_lookup
 
-experiment_slug = 'Test'
+experiment_slug = '5x10_Sep10'
 
 
 def main():
@@ -30,8 +30,38 @@ def main():
     with open(output_path / 'info.txt', 'w') as f:
         write_git_info(f)
 
-    #dataset_ids = [17, 43, 52, 94, 96, 151, 174, 176, 267]
-    dataset_ids = [863]
+    dataset_ids = [
+        17,  # Breast Cancer Wisconsin (Diagnostic)
+        19,  # Car Evaluation
+        43,  # Haberman's Survival
+        52,  # Ionosphere
+        59,  # Letter Recognition
+        78,  # Page Blocks Classification
+        94,  # Spambase
+        96,  # SPECTF Heart
+        151,  # Connectionist Bench (Sonar, Mines vs. Rocks)
+        159,  # MAGIC Gamma Telescope
+        174,  # Parkinsons
+        176,  # Blood Transfusion Service Center
+        212,  # Vertebral Column
+        267,  # Banknote authentication
+        329,  # Diabetic Retinopathy Debrecen
+        372,  # HTRU2
+        451,  # Breast Cancer Coimbra
+        519,  # Heart Failure Clinical Records
+        537,  # Cervical Cancer Behavior Risk
+        545,  # Rice (Cammeo and Osmancik)
+        563,  # Iranian Churn
+        572,  # Taiwanese Bankruptcy Prediction
+        602,  # Dry Bean
+        722,  # NATICUSdroid (Android Permissions)
+        827,  # Sepsis Survival Minimal Clinical Records
+        850,  # Raisin
+        863,  # Maternal health risk
+        887,  # National Health and Nutrition Health Survey 2013-2014 (NHANES) Age Prediction Subset
+        890,  # AIDS Clinical Trials Group Study 175
+        891,  # CDC Diabetes Health Indicators
+    ]
     for dataset_id in dataset_ids:
         print(f'.... {dataset_id} ...')
 
