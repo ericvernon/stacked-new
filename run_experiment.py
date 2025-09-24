@@ -9,10 +9,10 @@ from xgboost import XGBClassifier
 
 from src.experiment import ExperimentClassification
 from src.lib import Settings, write_git_info
-from src.models import tuned_decision_tree_classifier, OptunaXGBoostClassifier
+from src.models import tuned_decision_tree_classifier
 from src.param_cache import parameter_lookup
 
-experiment_slug = '5x10_Sep10'
+experiment_slug = '5x10'
 
 
 def main():
