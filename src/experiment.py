@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from abc import ABC, abstractmethod
+from collections import deque
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from pathlib import Path
 from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold
@@ -12,7 +13,7 @@ from .lib import Settings, DIFFICULTY_EASY, DIFFICULTY_HARD, DIFFICULTY_VERY_HAR
 from .data import load_dataset
 
 
-def save_results(path, X, y_truth, glass_box_model, black_box_model, grader_model, save_X=False):
+def save_results(path, X, y_truth, glass_box_model, black_box_model, grader_model, grader_model2=None, save_X=False):
     n_features = X.shape[1]
     if save_X:
         df = pd.DataFrame(X, index=None, columns=[f'X_{i}' for i in range(n_features)])
@@ -22,6 +23,8 @@ def save_results(path, X, y_truth, glass_box_model, black_box_model, grader_mode
     df['y_glass'] = glass_box_model.predict(X)
     df['y_black'] = black_box_model.predict(X)
     df['y_grader'] = grader_model.predict(X)
+    if grader_model2 is not None:
+        df['y_grader2'] = grader_model2.predict(X)
     df.to_csv(path, index=False)
 
 
@@ -54,7 +57,7 @@ class Experiment(ABC):
             glass_box_models = {}
             for name, model_fn in self._glass_box_choices.items():
                 model = model_fn()
-                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train)
+                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings.cw_n_splits)
                 model.fit(X_train, y_train)
                 glass_box_models[name] = {
                     'function': model_fn,
@@ -65,7 +68,7 @@ class Experiment(ABC):
             black_box_models = {}
             for name, model_fn in self._black_box_choices.items():
                 model = model_fn()
-                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train)
+                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings.cw_n_splits)
                 model.fit(X_train, y_train)
                 black_box_models[name] = {
                     'function': model_fn,
@@ -92,32 +95,51 @@ class Experiment(ABC):
                         ternary_grader_model = grader_fn(n_jobs=self._settings.n_jobs)
                         ternary_grader_model.fit(t_grader_x, t_grader_y)
 
+                        accept_reject_x, accept_reject_y = get_binary_grader_data(black_box_model_info['wrong_idx'],
+                                                                                  X_train)
+                        accept_reject_grader = grader_fn(n_jobs=self._settings.n_jobs)
+                        accept_reject_grader.fit(accept_reject_x, accept_reject_y)
+
                         save_results(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-train-binary.txt',
                             X_train, y_train, glass_box_model_info['trained_model'],
-                            black_box_model_info['trained_model'], binary_grader_model, self._settings.save_X
+                            black_box_model_info['trained_model'], binary_grader_model, save_X=self._settings.save_X
                         )
 
                         save_results(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-test-binary.txt',
                             X_test, y_test, glass_box_model_info['trained_model'],
-                            black_box_model_info['trained_model'], binary_grader_model, self._settings.save_X
+                            black_box_model_info['trained_model'], binary_grader_model, save_X=self._settings.save_X
                         )
 
                         save_results(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-train-ternary.txt',
                             X_train, y_train, glass_box_model_info['trained_model'],
-                            black_box_model_info['trained_model'], ternary_grader_model, self._settings.save_X
+                            black_box_model_info['trained_model'], ternary_grader_model, save_X=self._settings.save_X
                         )
 
                         save_results(
                             result_path /
                             f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-test-ternary.txt',
                             X_test, y_test, glass_box_model_info['trained_model'],
-                            black_box_model_info['trained_model'], ternary_grader_model, self._settings.save_X
+                            black_box_model_info['trained_model'], ternary_grader_model, save_X=self._settings.save_X
+                        )
+
+                        save_results(
+                            result_path /
+                            f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-train-double.txt',
+                            X_train, y_train, glass_box_model_info['trained_model'], black_box_model_info['trained_model'],
+                            binary_grader_model, accept_reject_grader, save_X=self._settings.save_X
+                        )
+
+                        save_results(
+                            result_path /
+                            f'{data_split_idx}-{glass_box_name}-{black_box_name}-{grader_name}-test-double.txt',
+                            X_test, y_test, glass_box_model_info['trained_model'], black_box_model_info['trained_model'],
+                            binary_grader_model, accept_reject_grader, save_X=self._settings.save_X
                         )
 
 
@@ -180,13 +202,19 @@ def get_ternary_grader_data(glass_box_wrong, black_box_wrong, X_train, skip_over
         return smote.fit_resample(X_train, difficulty)
 
 
-def collect_wrong_indices(model_function, X_train, y_train):
-    kfold = StratifiedKFold(n_splits=4, random_state=0, shuffle=True)
+def collect_wrong_indices(model_function, X_train, y_train, n_splits=5):
+    kfold = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=555_555)
+    q = deque([1] * n_splits, maxlen=n_splits)
     all_incorrect_idx = set()
     for data_split_idx, (train_idx, calibration_idx) in enumerate(kfold.split(X_train, y_train)):
         model = model_function()
         model.fit(X_train[train_idx], y_train[train_idx])
         wrong_idx_within_calibration = model.predict(X_train[calibration_idx]) != y_train[calibration_idx]
         wrong_idx_within_training = calibration_idx[wrong_idx_within_calibration]
+        n_before = len(all_incorrect_idx)
         all_incorrect_idx.update(wrong_idx_within_training)
+        n_new = len(all_incorrect_idx) - n_before
+        q.append(n_new)
+        if sum(q) == 0:
+            break
     return all_incorrect_idx

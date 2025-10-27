@@ -12,7 +12,7 @@ from src.lib import Settings, write_git_info
 from src.models import tuned_decision_tree_classifier
 from src.param_cache import parameter_lookup
 
-experiment_slug = '5x10'
+experiment_slug = 'Oct27_Full'
 
 
 def main():
@@ -21,6 +21,7 @@ def main():
         n_repeats=5,
         n_splits=10,
         n_jobs=1,
+        cw_n_splits=5,
     )
 
     output_path = Path(f'./output/results/{experiment_slug}') / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -29,6 +30,8 @@ def main():
         json.dump(settings.__dict__, f)
     with open(output_path / 'info.txt', 'w') as f:
         write_git_info(f)
+
+    # fast_dataset_ids = [17, 19, 43, 151, 176, 212, 451, 545, 563, 863]
 
     dataset_ids = [
         17,  # Breast Cancer Wisconsin (Diagnostic)
@@ -79,8 +82,10 @@ def main():
         }
 
         glass_box_grader = partial(tuned_decision_tree_classifier, max_allowed_depth=4)
+        grey_box_grader = partial(tuned_decision_tree_classifier, max_allowed_depth=16)
         grader_choices = {
-            'decision_tree': glass_box_grader,
+            'dt': glass_box_grader,
+            'grey': grey_box_grader,
         }
 
         exp = ExperimentClassification(glass_box_choices, black_box_choices, grader_choices, settings)
