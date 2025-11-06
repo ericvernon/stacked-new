@@ -123,18 +123,21 @@ def main():
         174,  # Parkinsons
         176,  # Blood Transfusion Service Center
         186,  # Wine quality
+        212,  # Vertebral Column
         225,  # ILPD (Indian Liver Patient Dataset)
         '242a',  # Energy Efficiency
         '242b',  # Energy Efficiency
         267,  # Banknote Authentication
         291,  # Airfoil Self-Noise
         294,  # Combined Cycle Power Plant
+        329,  # Diabetic Retinopathy Debrecen
         332,  # Online news popularity
         372,  # HTRU2
         451,  # Breast Cancer Coimbra
         464,  # Superconductivity Data
         477,  # Real Estate Valuation
         519,  # Heart Failure Clinical Records
+        537,  # Cervical Cancer Behavior Risks
         545,  # Rice (Cammeo and Osmancik)
         563,  # Iranian Churn
         572,  # Taiwanese Bankruptcy Prediction
@@ -142,6 +145,9 @@ def main():
         722,  # NATICUSdroid (Android Permissions)
         827,  # Sepsis Survival Minimal Clinical Records
         850,  # Raisin
+        863,  # Maternal health risk
+        887,  # National Health and Nutrition Health Survey 2013-2014 (NHANES) Age Prediction Subset
+        890,  # AIDS Clinical Trials Group Study 175
         891,  # CDC Diabetes Health Indicators
     ]
     for dataset in datasets:
