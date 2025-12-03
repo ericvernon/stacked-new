@@ -17,7 +17,11 @@ def subplots(**arg):
     fig, ax = plt.subplots(**arg)
     if isinstance(ax, Iterable):
         for axx in ax:
-            setup_axis(axx)
+            if isinstance(axx, Iterable):
+                for axxx in axx:
+                    setup_axis(axxx)
+            else:
+                setup_axis(axx)
     else:
         setup_axis(ax)
     return fig, ax
@@ -35,14 +39,14 @@ default_style = [
         's': 600,
         'marker': 'o',
         'c': 'red',
-        'alpha': 0.9,
+        'alpha': 0.95,
         'edgecolor': 'black',
     },
     {
         's': 600,
         'marker': 'o',
         'c': 'blue',
-        'alpha': 0.9,
+        'alpha': 0.95,
         'edgecolor': 'black',
     },
 ]
@@ -56,7 +60,7 @@ def scatter_pts(ax, X, y, style=None, shuffle_points=True):
         # Plot each point one by one (slower, but creates a more natural plot in areas where points overlap)
         order = np.random.default_rng(42).permutation(range(len(X)))
         for i in order:
-            cls = y[i]
+            cls = y[i].astype(np.int8)
             ax.scatter(X[i, 0], X[i, 1], s=style[cls]['s'], marker=style[cls]['marker'],
                        c=style[cls]['c'], alpha=style[cls]['alpha'], edgecolor=style[cls]['edgecolor'])
     else:
