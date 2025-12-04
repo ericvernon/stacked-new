@@ -57,7 +57,8 @@ class Experiment(ABC):
             glass_box_models = {}
             for name, model_fn in self._glass_box_choices.items():
                 model = model_fn()
-                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings.cw_n_splits)
+                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings.cw_n_splits,
+                                                        self._settings.cw_n_repeats, self._settings.cw_stop_condition)
                 model.fit(X_train, y_train)
                 glass_box_models[name] = {
                     'function': model_fn,
@@ -68,7 +69,8 @@ class Experiment(ABC):
             black_box_models = {}
             for name, model_fn in self._black_box_choices.items():
                 model = model_fn()
-                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings.cw_n_splits)
+                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings.cw_n_splits,
+                                                        self._settings.cw_n_repeats, self._settings.cw_stop_condition)
                 model.fit(X_train, y_train)
                 black_box_models[name] = {
                     'function': model_fn,
@@ -202,9 +204,19 @@ def get_ternary_grader_data(glass_box_wrong, black_box_wrong, X_train, skip_over
         return smote.fit_resample(X_train, difficulty)
 
 
-def collect_wrong_indices(model_function, X_train, y_train, n_splits=5):
-    kfold = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=555_555)
-    q = deque([1] * n_splits, maxlen=n_splits)
+# Stop conditions:
+    # "fixed"   - Stop after n_splits x n_repeats, no matter what
+    # "dynamic" - Perform n_splits CV infinitely, until n_repeats complete
+def collect_wrong_indices(model_function, X_train, y_train, n_splits, n_repeats, stop_condition='dynamic'):
+    if stop_condition == 'dynamic':
+        kfold = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=555_555, random_state=0)
+    elif stop_condition == 'static':
+        kfold = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=0)
+    else:
+        raise ValueError('Stop condition must be either "dynamic" or "static"')
+
+    q_len = n_splits * n_repeats
+    q = deque([1] * q_len, maxlen=q_len)
     all_incorrect_idx = set()
     for data_split_idx, (train_idx, calibration_idx) in enumerate(kfold.split(X_train, y_train)):
         model = model_function()
@@ -215,6 +227,8 @@ def collect_wrong_indices(model_function, X_train, y_train, n_splits=5):
         all_incorrect_idx.update(wrong_idx_within_training)
         n_new = len(all_incorrect_idx) - n_before
         q.append(n_new)
-        if sum(q) == 0:
+        # Only evaluate stopping after we complete a full CV set
+        # ... can consider changing this later + probably a minor detail, but for now do it this way
+        if stop_condition == 'dynamic' and (data_split_idx + 1) % n_splits == 0 and sum(q) == 0:
             break
     return all_incorrect_idx

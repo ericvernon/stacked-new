@@ -26,4 +26,6 @@ class Settings:
     n_splits: int
     n_jobs: int = None
     cw_n_splits: int = None
+    cw_n_repeats: int = None
+    cw_stop_condition: str = None
     save_X: bool = False

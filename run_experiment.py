@@ -12,7 +12,7 @@ from src.lib import Settings, write_git_info
 from src.models import tuned_decision_tree_classifier
 from src.param_cache import parameter_lookup
 
-experiment_slug = 'Oct27_Full'
+experiment_slug = 'Testing_z_'
 
 
 def main():
@@ -22,6 +22,8 @@ def main():
         n_splits=10,
         n_jobs=1,
         cw_n_splits=5,
+        cw_n_repeats=1,
+        cw_stop_condition='dynamic',
     )
 
     output_path = Path(f'./output/results/{experiment_slug}') / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -31,7 +33,7 @@ def main():
     with open(output_path / 'info.txt', 'w') as f:
         write_git_info(f)
 
-    # fast_dataset_ids = [17, 19, 43, 151, 176, 212, 451, 545, 563, 863]
+    fast_dataset_ids = [17, 19, 43, 151, 176, 212, 451, 545, 563, 863]
 
     dataset_ids = [
         17,  # Breast Cancer Wisconsin (Diagnostic)
@@ -65,7 +67,7 @@ def main():
         890,  # AIDS Clinical Trials Group Study 175
         891,  # CDC Diabetes Health Indicators
     ]
-    for dataset_id in dataset_ids:
+    for dataset_id in fast_dataset_ids:
         print(f'.... {dataset_id} ...')
 
         # This is not pretty ! But probably ok as a quick fix to add some kind of hyperparameter caching
