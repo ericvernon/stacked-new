@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import json
 
@@ -12,30 +13,9 @@ from src.lib import Settings, write_git_info
 from src.models import tuned_decision_tree_classifier
 from src.param_cache import parameter_lookup
 
-experiment_slug = 'Testing_z_'
-
-
-def main():
-    print("Starting Experiment...")
-    settings = Settings(
-        n_repeats=5,
-        n_splits=10,
-        n_jobs=1,
-        cw_n_splits=5,
-        cw_n_repeats=1,
-        cw_stop_condition='dynamic',
-    )
-
-    output_path = Path(f'./output/results/{experiment_slug}') / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    output_path.mkdir(parents=True)
-    with open(output_path / 'settings.json', 'w') as f:
-        json.dump(settings.__dict__, f)
-    with open(output_path / 'info.txt', 'w') as f:
-        write_git_info(f)
-
-    fast_dataset_ids = [17, 19, 43, 151, 176, 212, 451, 545, 563, 863]
-
-    dataset_ids = [
+dataset_baskets = {
+    'fast':     [17, 19, 43, 151, 176, 212, 451, 545, 563, 863],
+    'complete': [
         17,  # Breast Cancer Wisconsin (Diagnostic)
         19,  # Car Evaluation
         43,  # Haberman's Survival
@@ -67,7 +47,19 @@ def main():
         890,  # AIDS Clinical Trials Group Study 175
         891,  # CDC Diabetes Health Indicators
     ]
-    for dataset_id in fast_dataset_ids:
+}
+
+def main(s: Settings):
+    print("Starting Experiment...")
+
+    output_path = Path(f'./output/results/{s.experiment_slug}') / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    output_path.mkdir(parents=True)
+    with open(output_path / 'settings.json', 'w') as f:
+        json.dump(settings.__dict__, f)
+    with open(output_path / 'info.txt', 'w') as f:
+        write_git_info(f)
+
+    for dataset_id in s.datasets:
         print(f'.... {dataset_id} ...')
 
         # This is not pretty ! But probably ok as a quick fix to add some kind of hyperparameter caching
@@ -96,4 +88,34 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n-splits', type=int, default=10)
+    parser.add_argument('-n-repeats', type=int, default=5)
+    parser.add_argument('-cw-n-splits', type=int, default=5)
+    parser.add_argument('-cw-n-repeats', type=int, default=1)
+    parser.add_argument('-cw-stop-condition', type=str, default='dynamic', choices=['dynamic', 'static'])
+    parser.add_argument('--experiment_slug', type=str, default='Experiment_')
+    parser.add_argument('--dataset-basket', type=str, choices=dataset_baskets.keys())
+    parser.add_argument('--dataset', type=str, action='append')
+    args = parser.parse_args()
+
+    if args.dataset_basket is not None:
+        datasets = dataset_baskets[args.dataset_basket]
+    elif args.dataset is not None:
+        datasets = args.dataset
+    else:
+        datasets = []
+
+    settings = Settings(
+        experiment_slug=args.experiment_slug,
+        datasets=datasets,
+        n_repeats=args.n_repeats,
+        n_splits=args.n_splits,
+        cw_n_splits=args.cw_n_splits,
+        cw_n_repeats=args.cw_n_repeats,
+        cw_stop_condition=args.cw_stop_condition,
+        n_jobs=1,
+    )
+
+    print(settings)
+    main(settings)

@@ -1,0 +1,1 @@
+{"n_repeats": 5, "n_splits": 10, "datasets": [], "experiment_slug": "Experiment_", "n_jobs": 1, "cw_n_splits": 5, "cw_n_repeats": 1, "cw_stop_condition": "dynamic", "save_X": false}

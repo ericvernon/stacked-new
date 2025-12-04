@@ -24,6 +24,8 @@ def write_git_info(fh):
 class Settings:
     n_repeats: int
     n_splits: int
+    datasets: list
+    experiment_slug: str
     n_jobs: int = None
     cw_n_splits: int = None
     cw_n_repeats: int = None
