@@ -12,7 +12,7 @@ results_root = Path('./output/results')
 
 #experiment_name = 'Oct23_Fast_Subset_Main3x10_CW_25x5/20251024-002540'
 #experiment_name = 'Oct23_Fast_Subset_Main3x10_CW_Infx5/20251024-020343'
-experiment_name = 'Oct23_Fast_Subset_Main3x10_CW_Infx15/20251024-031112'
+experiment_name = 'Oct27_Full/20251106-145831'
 
 
 def load_results(only_load=None):
@@ -74,7 +74,6 @@ class RunInfo:
 
     def algorithm_type_hash(self):
         return f'{self.glass_box_algo}-{self.black_box_algo}-{self.grader_algo}-{self.grader_type}'
-
 
 
 if __name__ == '__main__':
