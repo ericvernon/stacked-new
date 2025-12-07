@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 from sklearn.metrics import cohen_kappa_score
 
@@ -7,59 +8,96 @@ import numpy as np
 from .lib import DIFFICULTY_EASY, DIFFICULTY_HARD, DIFFICULTY_VERY_HARD
 
 
-def parse_results_file(results_file: Path, grader_type: str):
+def load_results_from_path(results_path: Path, only_load=None):
     """
-    Input: a *raw* results file, which just has the glass box answer, black box answer, ground truth, etc.
-    Output: a dictionary with the following keys:
-        - hybrid_n_correct_total: The total number of correct answers from the hybrid system
-            i.e.,   glass_box_answer == y_truth AND grader_answer == EASY, PLUS
-                    black_box_answer == y_truth AND grader_answer == HARD
-        - hybrid_n_correct_easy: The number of correct answers from the hybrid system, limited to easy patterns
-            i.e.,   glass_box_answer == y_truth AND grader_answer == EASY
-        - hybrid_n_correct_hard: The number of correct answers from the hybrid system, limited to hard patterns
-            i.e.,   black_box_answer == y_truth AND grader_answer == HARD
-        - hybrid_n_reject: The number of patterns rejected by the hybrid system
-            ie.,    grader_answer == VERY_HARD
-        - glass_n_correct_total: The total number of correct answers from the glass box
-            i.e.,   glass_box_answer == y_truth
-        - glass_n_correct_easy: The number of correct answers from the glass box, limited to easy patterns
-            i.e.,   glass_box_answer == y_truth AND grader_answer == EASY
-        - glass_n_correct_hard: The number of correct answers from the glass box, limited to hard patterns
-            i.e.,   glass_box_answer == y_truth AND grader_answer == HARD
-        - glass_n_correct_very_hard: The number of correct answers from the glass box, limited to very hard patterns
-            i.e.,   glass_box_answer == y_truth AND grader_answer == VERY_HARD
-        - black_n_correct_total: Same as glass box section, but for the black box
-        - black_n_correct_easy   Same as glass box section, but for the black box
-        - black_n_correct_hard:  Same as glass box section, but for the black box
-        - black_n_correct_very_hard:  Same as glass box section, but for the black box
-        - n_total: The total number of patterns
-        - n_easy: The number of patterns marked as easy by the grader
-        - n_hard: The number of patterns marked as hard by the grader
-        - n_very_hard: The number of patterns marked as very hard by the grader
-    Some keys are not relevant to the actual results of the hybrid system (e.g. the glass box accuracy on hard patterns)
-    but are included in the results report since they may provide useful insight during analysis.
-    :param results_file: Filepath to parse
-    :return: dict
+    :param results_path: Path with all the results data in it
+    :param only_load: Either None, or a filter list of dataset names (ids) to only load a subset (for testing etc.)
+    :return:
     """
-    df = pd.read_csv(results_file)
+    data_dict = {}
+    for dataset in results_path.iterdir():
+        if not dataset.is_dir():
+            continue
+        if only_load is not None and dataset.name not in only_load:
+            continue
+        for results_file in dataset.iterdir():
+            run_info = parse_filename(results_file.name)
+            algorithm_type = run_info.algorithm_type_hash()
+            if algorithm_type not in data_dict:
+                data_dict[algorithm_type] = {}
+            if dataset.name not in data_dict[algorithm_type]:
+                data_dict[algorithm_type][dataset.name] = {
+                    'train': [],
+                    'test': [],
+                }
+            data_dict[algorithm_type][dataset.name][run_info.train_or_test].append(pd.read_csv(results_file))
+    return data_dict
 
 
-    df['y_difficulty'] = df['y_grader']
-    if grader_type == 'double':
-        # Glass/Black Priority
-        reject_idx = ((df['y_grader2'] == 1) & (df['y_grader'] != 0))
-        # Accept/Reject Priority
-        #reject_idx = df['y_grader2'] == 1
-        df.loc[reject_idx, 'y_difficulty'] = DIFFICULTY_VERY_HARD
+def parse_filename(filename):
+    # Filenames have this format:
+    # 0-decision_tree-xgboost-dt-test-double.txt
+    # Algo names can be anything. Train or test should be train/test.
+    # Grader type should be 'binary' (single glass/black grader), 'ternary' (single glass/black/reject grader),
+    #  or 'double' (two graders, one to decide glass/black and the other to decide accept/reject)
+    bits = filename[:-4].split('-')
+    return RunInfo(
+        run_id=int(bits[0]),
+        glass_box_algo=bits[1],
+        black_box_algo=bits[2],
+        grader_algo=bits[3],
+        train_or_test=bits[4],
+        grader_type=bits[5],
+    )
 
-    return parse_results_df(df, grader_type)
+
+@dataclass
+class RunInfo:
+    run_id: int
+    glass_box_algo: str
+    black_box_algo: str
+    grader_algo: str
+    train_or_test: str
+    grader_type: str
+
+    def algorithm_type_hash(self):
+        return f'{self.glass_box_algo}-{self.black_box_algo}-{self.grader_algo}-{self.grader_type}'
 
 
 def parse_results_df(df: pd.DataFrame, grader_type: str):
     """
-    Input: A dataframe representing the *raw* results (glass box prediction, black box prediction, ground truth, etc.) for one single run
-    Output: A parsed dictionary summarizing those results
+    Parse a *single* results dataframe, must contain columns 'y_glass', 'y_black', and 'y_truth'
+    For singleton graders, should also contain a single column 'y_grader'
+    For double graders, should also contain two columns, 'y_grader' and 'y_grader2'
+    :param df: The dataframe to parse
+    :param grader_type: The type of grader to evaluate with. Choices:
+        "binary"    : Assumes 0 -> Glass box, 1 -> Black box, no reject option
+        "ternary"   : Assumes 0 -> GLass box, 1 -> Black box, 2 -> reject
+        "double-GB" : Assumes 1st grader 0 -> Glass box, Else: 2nd grader 0 -> Black box, 1 -> reject
+                        (i.e., decide glass/not-glass first, then black/reject)
+        "double-AR" : Assumes 2nd grader 1 -> Reject, Else: 1st grader 0 -> Glass box, 1 -> Black box
+                        (i.e., decide accept/reject first, then glass/black)
+    :return: A Python dictionary with parsed statistics about that run
     """
+    if grader_type == 'binary' or grader_type == 'ternary':
+        y_final_grade = df['y_grader'].copy()
+    elif grader_type == 'double-GB':
+        hard_idx = (df['y_grader'] == 1) & (df['y_grader2'] == 0)
+        vhard_idx = (df['y_grader'] == 1) & (df['y_grader2'] == 1)
+        y_final_grade = np.zeros_like(df['y_grader'])
+        y_final_grade[hard_idx] = DIFFICULTY_HARD
+        y_final_grade[vhard_idx] = DIFFICULTY_VERY_HARD
+    elif grader_type == 'double-AR':
+        hard_idx = (df['y_grader'] == 1) & (df['y_grader2'] == 0)
+        vhard_idx = (df['y_grader2'] == 1)
+        y_final_grade = np.zeros_like(df['y_grader'])
+        y_final_grade[hard_idx] = DIFFICULTY_HARD
+        y_final_grade[vhard_idx] = DIFFICULTY_VERY_HARD
+    else:
+        raise ValueError(f'Unknown grader type {grader_type}')
+    df['y_difficulty'] = y_final_grade
+
+
     hybrid_n_correct_easy = np.count_nonzero(
         (df['y_glass'] == df['y_truth']) &
         (df['y_difficulty'] == DIFFICULTY_EASY)
@@ -146,7 +184,8 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
         'hybrid_n_correct_easy': hybrid_n_correct_easy,
         'hybrid_n_correct_hard': hybrid_n_correct_hard,
         'hybrid_n_reject': hybrid_n_reject,
-        'hybrid_accuracy_all': hybrid_n_correct_total / (n_total - hybrid_n_reject) if n_total > hybrid_n_reject else np.nan,
+        'hybrid_accuracy_all': hybrid_n_correct_total / (
+                    n_total - hybrid_n_reject) if n_total > hybrid_n_reject else np.nan,
         'hybrid_accuracy_easy': (hybrid_n_correct_easy / n_easy) if n_easy > 0 else np.nan,
         'hybrid_accuracy_hard': (hybrid_n_correct_hard / n_hard) if n_hard > 0 else np.nan,
         'glass_n_correct_total': glass_n_correct_total,
@@ -163,7 +202,7 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
         'black_n_correct_hard': black_n_correct_hard,
         'black_n_correct_very_hard': black_n_correct_very_hard,
         'black_accuracy_all': black_n_correct_total / n_total,
-        'black_accuracy_easy': (black_n_correct_easy / n_easy)  if n_easy > 0 else np.nan,
+        'black_accuracy_easy': (black_n_correct_easy / n_easy) if n_easy > 0 else np.nan,
         'black_accuracy_hard': (black_n_correct_hard / n_hard) if n_hard > 0 else np.nan,
         'black_accuracy_very_hard': (black_n_correct_very_hard / n_very_hard) if n_very_hard > 0 else np.nan,
         'black_accuracy_non_easy': ((black_n_correct_hard + black_n_correct_very_hard) / (n_hard + n_very_hard)) if (n_hard + n_very_hard) > 0 else np.nan,
@@ -261,31 +300,36 @@ def results_df_to_text(results_df):
         '\n'
     )
 
+    return sb
 
+
+def bulk_text_report(results_dict, grader_type):
+    sb = ''
+    for dataset_name in results_dict.keys():
+        training_results = [
+            parse_results_df(run_result_df, grader_type) for run_result_df in results_dict[dataset_name]['train']
+        ]
+        df_train = pd.DataFrame(training_results)
+
+        testing_results = [
+            parse_results_df(run_result_df, grader_type) for run_result_df in results_dict[dataset_name]['test']
+        ]
+        df_test = pd.DataFrame(testing_results)
+
+        sb += f'DATASET ID: {dataset_name} ({dataset_names[dataset_name]})\n'
+        sb += '--TRAIN--\n'
+        sb += results_df_to_text(df_train)
+        sb += '--TEST--\n'
+        sb += results_df_to_text(df_test)
+        sb += '\n'
 
     return sb
 
 
-def bulk_text_report(reports_path, results):
-    for algorithm_type, algorithm_results in results.items():
-        report = ''
-        for dataset_name in algorithm_results.keys():
-            df_train = pd.DataFrame.from_dict(algorithm_results[dataset_name]['train']).set_index('run_id')
-            df_test = pd.DataFrame.from_dict(algorithm_results[dataset_name]['test']).set_index('run_id')
-            report += f'DATASET ID: {dataset_name} ({dataset_names[dataset_name]})\n'
-            report += '--TRAIN--\n'
-            report += results_df_to_text(df_train)
-            report += '--TEST--\n'
-            report += results_df_to_text(df_test)
-            report += '\n'
-        report_path = f'{reports_path / algorithm_type}.txt'
-        with open(report_path, 'w', encoding='UTF-8') as f:
-            f.write(report)
-
-
 def csv_summary_report(path, results, algo_prefix=''):
     with open(path, 'w', encoding='UTF-8') as f:
-        f.write("dataset,algorithm,train_acc_mean,train_reject_mean,train_grader_kappa_mean,test_acc_mean,test_reject_mean,test_grader_kappa_mean\n")
+        f.write(
+            "dataset,algorithm,train_acc_mean,train_reject_mean,train_grader_kappa_mean,test_acc_mean,test_reject_mean,test_grader_kappa_mean\n")
         for algorithm_type, algorithm_results in results.items():
             for dataset_name in algorithm_results.keys():
                 df_train = pd.DataFrame.from_dict(algorithm_results[dataset_name]['train']).set_index('run_id')
@@ -300,6 +344,7 @@ def csv_summary_report(path, results, algo_prefix=''):
                     f'{df_test['hybrid_reject_rate'].mean():.8f},'
                     f'{df_test['grader_kappa'].mean():.8f}\n'
                 )
+
 
 #
 # def bulk_latex_report(train_or_test):

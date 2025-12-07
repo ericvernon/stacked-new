@@ -2,14 +2,14 @@ from pathlib import Path
 
 import unittest
 
-from src.reporting import parse_results_file
+from src.reporting import parse_results_dict
 
 
 class MyTestCase(unittest.TestCase):
     # Test the basic functionality using a short (random) file simulating a binary grader, with hand-counted results
     def test_results_binary_grader(self):
         test_file = Path('./data/simple_binary.txt')
-        results = parse_results_file(test_file)
+        results = parse_results_dict(test_file)
 
         self.assertIn('hybrid_n_correct_total', results)
         self.assertIn('hybrid_n_correct_easy', results)
@@ -43,7 +43,7 @@ class MyTestCase(unittest.TestCase):
     def test_results_ternary_grader(self):
         # A random data file simulating the ternary grader. Expected results are hand counted.
         test_file = Path('./data/simple_ternary.txt')
-        results = parse_results_file(test_file)
+        results = parse_results_dict(test_file)
 
         self.assertIn('hybrid_n_correct_total', results)
         self.assertIn('hybrid_n_correct_easy', results)
@@ -85,7 +85,7 @@ class MyTestCase(unittest.TestCase):
     # Test basic assumptions about the data structure using a long (random generated) file
     def test_results_long(self):
         test_file = Path('./data/simple_ternary_long.txt')
-        results = parse_results_file(test_file)
+        results = parse_results_dict(test_file)
 
         self.assertEqual(results['n_total'], results['n_easy'] + results['n_hard'] + results['n_very_hard'])
         self.assertEqual(results['n_very_hard'], results['hybrid_n_reject'])
