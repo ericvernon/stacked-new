@@ -1,0 +1,1 @@
+{"n_repeats": 2, "n_splits": 10, "datasets": ["19", "43", "52", "174", "212", "451"], "experiment_slug": "UltraFast_2x10_3x5_Dynamic", "n_jobs": 1, "cw_n_splits": 5, "cw_n_repeats": 3, "cw_stop_condition": "dynamic", "save_X": false}

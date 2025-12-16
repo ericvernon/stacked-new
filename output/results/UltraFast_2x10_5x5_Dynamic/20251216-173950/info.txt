@@ -1,0 +1,19 @@
+Git hash: 6ebe8030
+
+Git status (./src): On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	output/results/CW_1x5_Dynamic/
+	output/results/CW_1x5_Dynamic_Complete/
+	output/results/Experiment_/20251209-155815/
+	output/results/UltraFast_2x10_1x5_Static/
+	output/results/UltraFast_2x10_3x5_Static/
+	output/results/UltraFast_2x10_5x5_Dynamic/
+	output/results/UltraFast_2x10_5x5_Static/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+
+Running on system Gates
