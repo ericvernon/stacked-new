@@ -154,15 +154,17 @@ class ExperimentClassification(Experiment):
 def get_binary_grader_data(wrong_idx, X_train):
     n_patterns = X_train.shape[0]
     n_wrong = len(wrong_idx)
+    n_right = n_patterns - n_wrong
+    min_bin = min(n_wrong, n_right)
     difficulty = np.full(shape=(n_patterns,), fill_value=DIFFICULTY_EASY)
     difficulty[np.array(list(wrong_idx))] = DIFFICULTY_HARD
-    if n_wrong == 0 or n_wrong == X_train.shape[0]:
+    if min_bin == 0:  # Either all correct, or all incorrect... just keep as is.
         return X_train.copy(), difficulty
-    elif n_wrong == 1:
+    elif n_wrong == 1:  # Only one incorrect (or one correct)... no great way to create synthetic samples
         os = RandomOverSampler(random_state=0)
         return os.fit_resample(X_train, difficulty)
     else:
-        k_neighbors = min(n_wrong - 1, 5)
+        k_neighbors = min(min_bin - 1, 5)
         smote = SMOTE(k_neighbors=k_neighbors, random_state=0)
         return smote.fit_resample(X_train, difficulty)
 
