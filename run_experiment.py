@@ -16,8 +16,8 @@ from src.param_cache import parameter_lookup
 dataset_baskets = {
     'fast':     [17, 19, 43, 151, 176, 212, 451, 545, 563, 863],
     'midscope': [
-        17, 19, 43, 52, 94, 96, 151, 174, 174, 212,
-        267, 329, 451, 519, 537, 545, 563, 850, 863, 887, 891
+        17, 19, 43, 52, 94, 96, 151, 174, 212, 267,
+        329, 451, 519, 537, 545, 563, 850, 863, 887, 891
     ],
     'complete': [
         17,  # Breast Cancer Wisconsin (Diagnostic)
