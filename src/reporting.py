@@ -64,12 +64,15 @@ class RunInfo:
         return f'{self.glass_box_algo}-{self.black_box_algo}-{self.grader_algo}-{self.grader_type}'
 
 
-def parse_results_df(df: pd.DataFrame, grader_type: str):
+def parse_results_dict(results_dict, grader_type):
     """
-    Parse a *single* results dataframe, must contain columns 'y_glass', 'y_black', and 'y_truth'
-    For singleton graders, should also contain a single column 'y_grader'
-    For double graders, should also contain two columns, 'y_grader' and 'y_grader2'
-    :param df: The dataframe to parse
+    Take in a results_dict (e.g. from load_results_from_path), and get a dictionary in the following format:
+        dataset_id => {
+            'train': (pandas dataframe)
+            'test': (pandas dataframe)
+        }
+    Where each row in the pandas dataframe represents statistics about a particular run
+    :param results_dict:
     :param grader_type: The type of grader to evaluate with. Choices:
         "binary"    : Assumes 0 -> Glass box, 1 -> Black box, no reject option
         "ternary"   : Assumes 0 -> GLass box, 1 -> Black box, 2 -> reject
@@ -77,6 +80,31 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
                         (i.e., decide glass/not-glass first, then black/reject)
         "double-AR" : Assumes 2nd grader 1 -> Reject, Else: 1st grader 0 -> Glass box, 1 -> Black box
                         (i.e., decide accept/reject first, then glass/black)
+    :return:
+    """
+    parsed_results = {}
+    for dataset_name in results_dict.keys():
+        training_results = [
+            parse_results_df(run_result_df, grader_type) for run_result_df in results_dict[dataset_name]['train']
+        ]
+        testing_results = [
+            parse_results_df(run_result_df, grader_type) for run_result_df in results_dict[dataset_name]['test']
+        ]
+        parsed_results[dataset_name] = {
+            'train': pd.DataFrame(training_results),
+            'test': pd.DataFrame(testing_results),
+        }
+
+    return parsed_results
+
+
+def parse_results_df(df: pd.DataFrame, grader_type: str):
+    """
+    Parse a *single* results dataframe, must contain columns 'y_glass', 'y_black', and 'y_truth'
+    For singleton graders, should also contain a single column 'y_grader'
+    For double graders, should also contain two columns, 'y_grader' and 'y_grader2'
+    :param df: The dataframe to parse
+    :param grader_type: The type of grader to evaluate with
     :return: A Python dictionary with parsed statistics about that run
     """
     if grader_type == 'binary' or grader_type == 'ternary':
@@ -303,47 +331,39 @@ def results_df_to_text(results_df):
     return sb
 
 
-def bulk_text_report(results_dict, grader_type):
+def bulk_text_report(parsed_results):
     sb = ''
-    for dataset_name in results_dict.keys():
-        training_results = [
-            parse_results_df(run_result_df, grader_type) for run_result_df in results_dict[dataset_name]['train']
-        ]
-        df_train = pd.DataFrame(training_results)
-
-        testing_results = [
-            parse_results_df(run_result_df, grader_type) for run_result_df in results_dict[dataset_name]['test']
-        ]
-        df_test = pd.DataFrame(testing_results)
-
+    for dataset_name in parsed_results.keys():
         sb += f'DATASET ID: {dataset_name} ({dataset_names[dataset_name]})\n'
         sb += '--TRAIN--\n'
-        sb += results_df_to_text(df_train)
+        sb += results_df_to_text(parsed_results[dataset_name]['train'])
         sb += '--TEST--\n'
-        sb += results_df_to_text(df_test)
+        sb += results_df_to_text(parsed_results[dataset_name]['test'])
         sb += '\n'
 
     return sb
 
 
-def csv_summary_report(path, results, algo_prefix=''):
-    with open(path, 'w', encoding='UTF-8') as f:
-        f.write(
-            "dataset,algorithm,train_acc_mean,train_reject_mean,train_grader_kappa_mean,test_acc_mean,test_reject_mean,test_grader_kappa_mean\n")
-        for algorithm_type, algorithm_results in results.items():
-            for dataset_name in algorithm_results.keys():
-                df_train = pd.DataFrame.from_dict(algorithm_results[dataset_name]['train']).set_index('run_id')
-                df_test = pd.DataFrame.from_dict(algorithm_results[dataset_name]['test']).set_index('run_id')
-                f.write(
-                    f'{dataset_names[dataset_name]},'
-                    f'{algo_prefix}{algorithm_type},'
-                    f'{df_train['hybrid_accuracy_all'].mean():.8f},'
-                    f'{df_train['hybrid_reject_rate'].mean():.8f},'
-                    f'{df_train['grader_kappa'].mean():.8f},'
-                    f'{df_test['hybrid_accuracy_all'].mean():.8f},'
-                    f'{df_test['hybrid_reject_rate'].mean():.8f},'
-                    f'{df_test['grader_kappa'].mean():.8f}\n'
-                )
+def csv_summary_report(parsed_results, prefix):
+    sb = ''
+    for dataset_name, results in parsed_results.items():
+        sb += csv_summary_from_df(results['train'], results['test'], dataset_name, prefix)
+    return sb
+
+
+CSV_SUMMARY_HEADER = 'dataset,algorithm,hybrid_accuracy_train,hybrid_reject_train,hybrid_kappa_train,'\
+    'hybrid_accuracy_test,hybrid_reject_test,hybrid_kappa_test'
+
+
+def csv_summary_from_df(df_train, df_test, dataset_name, prefix):
+    return f'{dataset_name},'\
+           f'{prefix},'\
+           f'{df_train['hybrid_accuracy_all'].mean():.8f},'\
+           f'{df_train['hybrid_reject_rate'].mean():.8f},'\
+           f'{df_train['grader_kappa'].mean():.8f},'\
+           f'{df_test['hybrid_accuracy_all'].mean():.8f},'\
+           f'{df_test['hybrid_reject_rate'].mean():.8f},'\
+           f'{df_test['grader_kappa'].mean():.8f}\n'
 
 
 #

@@ -3,7 +3,8 @@ import argparse
 import shutil
 from pathlib import Path
 
-from src.reporting import load_results_from_path, parse_results_df, bulk_text_report
+from src.reporting import (load_results_from_path, parse_results_dict, bulk_text_report, csv_summary_report,
+                           CSV_SUMMARY_HEADER)
 
 reports_root = Path('./output/reports')
 results_root = Path('./output/results')
@@ -13,12 +14,27 @@ def main(experiment_slug, experiment_id):
     results_path = results_root / experiment_slug / experiment_id
     reports_path = reports_root / experiment_slug / experiment_id
     reports_path.mkdir(exist_ok=True, parents=True)
-    results = load_results_from_path(results_path, only_load=['17'])
-    text_report = bulk_text_report(
-        results['decision_tree-xgboost-dt-double'],
-        'double-GB'
-    )
-    print(text_report)
+    results = load_results_from_path(results_path, only_load=['19'])
+
+    infos = [
+        ('decision_tree-xgboost-dt-binary', 'binary', 'Binary_Shallow'),
+        ('decision_tree-xgboost-dt-double', 'double-AR', 'Double_AR_Shallow'),
+        ('decision_tree-xgboost-dt-double', 'double-GB', 'Double_GB_Shallow'),
+        ('decision_tree-xgboost-dt-ternary', 'ternary', 'Ternary_Shallow'),
+        ('decision_tree-xgboost-grey-binary', 'binary', 'Binary_Deep'),
+        ('decision_tree-xgboost-grey-double', 'double-AR', 'Double_AR_Deep'),
+        ('decision_tree-xgboost-grey-double', 'double-GB', 'Double_GB_Deep'),
+        ('decision_tree-xgboost-grey-ternary', 'ternary', 'Ternary_Deep')
+    ]
+
+    calibration_name = '1x5_Dynamic'
+    with open(reports_path / 'summary.txt', 'w', encoding='UTF-8') as summary_fh:
+        summary_fh.write(CSV_SUMMARY_HEADER + '\n')
+        for result_key, grader_type, summary_name in infos:
+            parsed_results = parse_results_dict(results[result_key], grader_type)
+            summary = csv_summary_report(parsed_results, f'{calibration_name}_{summary_name}')
+            summary_fh.write(summary)
+
     # x = parse_results_df(
     #         results['decision_tree-xgboost-dt-double']['17']['test'][4],
     #         'double-GB'
@@ -37,8 +53,8 @@ def main(experiment_slug, experiment_id):
 
 
 
-default_slug = 'Oct21_Fast_Subset_Main3x10_CW5x1'
-default_id = '20251021-152154'
+default_slug = 'UltraFast_2x10_1x5_Dynamic'
+default_id = '20251216-182246'
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp-slug', type=str, default=default_slug)
