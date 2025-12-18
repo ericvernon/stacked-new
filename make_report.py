@@ -14,15 +14,16 @@ def main(experiment_slug, experiment_id):
     results_path = results_root / experiment_slug / experiment_id
     reports_path = reports_root / experiment_slug / experiment_id
     reports_path.mkdir(exist_ok=True, parents=True)
-    results = load_results_from_path(results_path, only_load=['19'])
+    results = load_results_from_path(results_path)
 
     #  Table with detailed results for each difficulty band.
     #  Parse with the method proposed in the paper (shallow grader, double-GB type)
-    parsed_results = parse_results_dict(results['decision_tree-xgboost-dt-double'], 'double-GB')
-    band_summary_train, band_summary_test = difficulty_band_summary_latex(parsed_results)
-    print(band_summary_train)
-    print(band_summary_test)
-    return
+    with (open(reports_path / 'band_summary_train.txt', 'w', encoding='UTF-8') as train_fh,
+          open(reports_path / 'band_summary_test.txt', 'w', encoding='UTF-8') as test_fh):
+        parsed_results = parse_results_dict(results['decision_tree-xgboost-dt-double'], 'double-GB')
+        band_summary_train, band_summary_test = difficulty_band_summary_latex(parsed_results)
+        train_fh.write(band_summary_train)
+        test_fh.write(band_summary_test)
 
     #  Summary statistics to compare grader variants
     infos = [

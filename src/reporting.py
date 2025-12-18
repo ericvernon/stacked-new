@@ -270,17 +270,18 @@ def difficulty_band_summary_latex(parsed_results):
 
 
 def band_summary_helper(dataset_name, df):
-    return (f'{dataset_name},'
-            f'{100 * df['hybrid_accuracy_all'].mean():.2f}%,'
-            f'{100 * df['glass_accuracy_all'].mean():.2f}%,'
-            f'{100 * df['black_accuracy_all'].mean():.2f}%,'
-            f'{100 * df['glass_accuracy_easy'].mean():.2f}%,'
-            f'{100 * df['black_accuracy_easy'].mean():.2f}%,'
-            f'{100 * df['glass_accuracy_hard'].mean():.2f}%,'
-            f'{100 * df['black_accuracy_hard'].mean():.2f}%,'
-            f'{100 * df['glass_accuracy_very_hard'].mean():.2f}%,'
-            f'{100 * df['black_accuracy_very_hard'].mean():.2f}%'
+    return (f'{dataset_names[dataset_name]} & '
+            f'{100 * df['hybrid_accuracy_all'].mean():.2f}\\% & '
+            f'{100 * df['glass_accuracy_all'].mean():.2f}\\% & '
+            f'{100 * df['black_accuracy_all'].mean():.2f}\\% & '
+            f'{100 * df['glass_accuracy_easy'].mean():.2f}\\% & '
+            f'{100 * df['black_accuracy_easy'].mean():.2f}\\% & '
+            f'{100 * df['glass_accuracy_hard'].mean():.2f}\\% & '
+            f'{100 * df['black_accuracy_hard'].mean():.2f}\\% & '
+            f'{100 * df['glass_accuracy_very_hard'].mean():.2f}\\% & '
+            f'{100 * df['black_accuracy_very_hard'].mean():.2f}\\% \\\\ \n'
             )
+
 
 def results_df_to_text(results_df):
     sb = ''
