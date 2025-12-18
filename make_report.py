@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 from src.reporting import (load_results_from_path, parse_results_dict, bulk_text_report, csv_summary_report,
-                           CSV_SUMMARY_HEADER)
+                           difficulty_band_summary_latex, CSV_SUMMARY_HEADER)
 
 reports_root = Path('./output/reports')
 results_root = Path('./output/results')
@@ -16,6 +16,15 @@ def main(experiment_slug, experiment_id):
     reports_path.mkdir(exist_ok=True, parents=True)
     results = load_results_from_path(results_path, only_load=['19'])
 
+    #  Table with detailed results for each difficulty band.
+    #  Parse with the method proposed in the paper (shallow grader, double-GB type)
+    parsed_results = parse_results_dict(results['decision_tree-xgboost-dt-double'], 'double-GB')
+    band_summary_train, band_summary_test = difficulty_band_summary_latex(parsed_results)
+    print(band_summary_train)
+    print(band_summary_test)
+    return
+
+    #  Summary statistics to compare grader variants
     infos = [
         ('decision_tree-xgboost-dt-binary', 'binary', 'Binary_Shallow'),
         ('decision_tree-xgboost-dt-double', 'double-AR', 'Double_AR_Shallow'),
@@ -34,6 +43,7 @@ def main(experiment_slug, experiment_id):
             parsed_results = parse_results_dict(results[result_key], grader_type)
             summary = csv_summary_report(parsed_results, f'{calibration_name}_{summary_name}')
             summary_fh.write(summary)
+
 
     # x = parse_results_df(
     #         results['decision_tree-xgboost-dt-double']['17']['test'][4],

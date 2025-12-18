@@ -260,6 +260,28 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
     }
 
 
+def difficulty_band_summary_latex(parsed_results):
+    sb_train, sb_test = '', ''
+    for dataset_name, results in parsed_results.items():
+        sb_train += band_summary_helper(dataset_name, results['train'])
+        sb_test += band_summary_helper(dataset_name, results['test'])
+
+    return sb_train, sb_test
+
+
+def band_summary_helper(dataset_name, df):
+    return (f'{dataset_name},'
+            f'{100 * df['hybrid_accuracy_all'].mean():.2f}%,'
+            f'{100 * df['glass_accuracy_all'].mean():.2f}%,'
+            f'{100 * df['black_accuracy_all'].mean():.2f}%,'
+            f'{100 * df['glass_accuracy_easy'].mean():.2f}%,'
+            f'{100 * df['black_accuracy_easy'].mean():.2f}%,'
+            f'{100 * df['glass_accuracy_hard'].mean():.2f}%,'
+            f'{100 * df['black_accuracy_hard'].mean():.2f}%,'
+            f'{100 * df['glass_accuracy_very_hard'].mean():.2f}%,'
+            f'{100 * df['black_accuracy_very_hard'].mean():.2f}%'
+            )
+
 def results_df_to_text(results_df):
     sb = ''
     pct_easy = results_df['hybrid_glass_usage'].mean()
