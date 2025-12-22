@@ -1,0 +1,1 @@
+{"n_repeats": 5, "n_splits": 10, "datasets": [17, 19, 43, 52, 94, 96, 151, 174, 174, 212, 267, 329, 451, 519, 537, 545, 563, 850, 863, 887, 891], "experiment_slug": "CW_5x5_Static_Midscope", "n_jobs": 1, "cw_n_splits": 5, "cw_n_repeats": 5, "cw_stop_condition": "static", "save_X": false}
