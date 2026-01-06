@@ -19,15 +19,13 @@ midscope_datasets = [
     329, 451, 519, 537, 545, 563, 850, 863, 887, 891
 ]
 # All, Shallow, Deep
-compare = 'Deep'
+compare = 'All'
 show_labels = [
     '1x5_Dynamic_Double_GB_Shallow',
     '1x5_Dynamic_Double_AR_Deep',
     '1x5_Static_Double_GB_Deep',
     '5x5_Dynamic_Double_AR_Shallow',
-    '1x5_Dynamic_Ternary_Shallow',
     '1x5_Dynamic_Ternary_Deep',
-    '1x5_Dynamic_Double_GB_Deep',
     '3x5_Static_Double_GB_Deep',
 ]
 
@@ -132,12 +130,12 @@ def plot_pareto_front(summary_df, train_or_test):
     for _, row in summary_df.iterrows():
         if row['algorithm'] in show_labels or compare != 'All':
             texts.append(
-                plt.text(row[x_col], row[y_col], f'{row['algorithm']}', fontsize=12)
+                plt.text(row[x_col], row[y_col], f'{row['algorithm']}', fontsize=16)
             )
-    adjust_text(texts, arrowprops=dict(arrowstyle='->', color='black'))
+    adjust_text(texts, arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=0, mutation_scale=20))
 
-    plt.xlabel(x_col)
-    plt.ylabel(y_col)
+    plt.xlabel(x_col, fontsize=14)
+    plt.ylabel(y_col, fontsize=14)
     if train_or_test == 'train':
         words = 'Training Set'
     else:
@@ -146,7 +144,7 @@ def plot_pareto_front(summary_df, train_or_test):
         words += ', Shallow Graders Only'
     elif compare == 'Deep':
         words += ', Deep Graders Only'
-    plt.title(f'Accuracy vs. Reject Rate ({words})', fontsize=18)
+    plt.title(f'Accuracy vs. Reject Rate ({words})', fontsize=22)
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(
