@@ -1,12 +1,12 @@
 pandas
 numpy
-# As of Dec 21, the current XGB release is not compatible with sklearn 1.6
 scikit-learn~=1.5.0
 xgboost
 ucimlrepo
 imbalanced-learn
 optuna
 jupyter
-matplotlib
+matplotlib<3.10.0
 tqdm
 plotly
+adjusttext

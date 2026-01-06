@@ -271,16 +271,59 @@ def difficulty_band_summary_latex(parsed_results):
 
 def band_summary_helper(dataset_name, df):
     return (f'{dataset_names[dataset_name]} & '
-            f'{100 * df['hybrid_accuracy_all'].mean():.2f}\\% & '
-            f'{100 * df['glass_accuracy_all'].mean():.2f}\\% & '
-            f'{100 * df['black_accuracy_all'].mean():.2f}\\% & '
-            f'{100 * df['glass_accuracy_easy'].mean():.2f}\\% & '
-            f'{100 * df['black_accuracy_easy'].mean():.2f}\\% & '
-            f'{100 * df['glass_accuracy_hard'].mean():.2f}\\% & '
-            f'{100 * df['black_accuracy_hard'].mean():.2f}\\% & '
-            f'{100 * df['glass_accuracy_very_hard'].mean():.2f}\\% & '
-            f'{100 * df['black_accuracy_very_hard'].mean():.2f}\\% \\\\ \n'
+            f'{100 * df['hybrid_accuracy_all'].mean():.2f} & '
+            f'± {100 * df['hybrid_accuracy_all'].std():.2f} & '
+            f'{100 * df['glass_accuracy_all'].mean():.2f} & '
+            f'± {100 * df['glass_accuracy_all'].std():.2f} & '
+            f'{100 * df['black_accuracy_all'].mean():.2f} & '
+            f'± {100 * df['black_accuracy_all'].std():.2f} & '
+            f'{100 * df['glass_accuracy_easy'].mean():.2f} & '
+            f'± {100 * df['glass_accuracy_easy'].std():.2f} & '
+            f'{100 * df['black_accuracy_easy'].mean():.2f} & '
+            f'± {100 * df['black_accuracy_easy'].std():.2f} & '
+            f'{100 * df['glass_accuracy_hard'].mean():.2f} & '
+            f'± {100 * df['glass_accuracy_hard'].std():.2f} & '
+            f'{100 * df['black_accuracy_hard'].mean():.2f} & '
+            f'± {100 * df['black_accuracy_hard'].std():.2f} & '
+            f'{100 * df['glass_accuracy_very_hard'].mean():.2f} & '
+            f'± {100 * df['glass_accuracy_very_hard'].std():.2f} & '
+            f'{100 * df['black_accuracy_very_hard'].mean():.2f} & '
+            f'± {100 * df['black_accuracy_very_hard'].std():.2f} \\\\ \\hline\n'
             )
+
+
+def results_overview_latex(parsed_results_with_reject, parsed_results_no_reject):
+    sb_train, sb_test = '', ''
+    for dataset_name in parsed_results_with_reject.keys():
+        results_reject = parsed_results_with_reject[dataset_name]
+        results_no_reject = parsed_results_no_reject[dataset_name]
+        sb_train += results_overview_helper(dataset_name, results_reject['train'], results_no_reject['train'])
+        sb_test += results_overview_helper(dataset_name, results_reject['test'], results_no_reject['test'])
+    return sb_train, sb_test
+
+
+def results_overview_helper(dataset_name, df_with_reject, df_no_reject):
+    # dataset name | DT Accuracy | XGB Accuracy | Hybrid Accuracy (No Reject) | Hybrid Accuracy (Reject) |
+    #   Glass box usage | Black box usage | Reject Rate
+    return (
+        f'{dataset_names[dataset_name]} & '
+        f'{100 * df_with_reject['glass_accuracy_all'].mean():.2f} & '
+        f'± {100 * df_with_reject['glass_accuracy_all'].std():.2f} & '
+        f'{100 * df_with_reject['black_accuracy_all'].mean():.2f} & '
+        f'± {100 * df_with_reject['black_accuracy_all'].std():.2f} & '
+        f'{100 * df_no_reject['hybrid_accuracy_all'].mean():.2f} & '
+        f'± {100 * df_no_reject['hybrid_accuracy_all'].std():.2f} & '
+        f'{100 * df_with_reject['hybrid_accuracy_all'].mean():.2f} & '
+        f'± {100 * df_with_reject['hybrid_accuracy_all'].std():.2f} & '
+        f'{100 * df_with_reject['hybrid_glass_usage'].mean():.2f} & '
+        f'± {100 * df_with_reject['hybrid_glass_usage'].std():.2f} & '
+        f'{100 * df_with_reject['hybrid_black_usage'].mean():.2f} & '
+        f'± {100 * df_with_reject['hybrid_black_usage'].std():.2f} & '
+        f'{100 * df_with_reject['hybrid_reject_rate'].mean():.2f} & '
+        f'± {100 * df_with_reject['hybrid_reject_rate'].std():.2f} '
+        '\\\\ \\hline \n'
+    )
+
 
 
 def results_df_to_text(results_df):
@@ -387,6 +430,7 @@ def csv_summary_from_df(df_train, df_test, dataset_name, prefix):
            f'{df_test['hybrid_accuracy_all'].mean():.8f},'\
            f'{df_test['hybrid_reject_rate'].mean():.8f},'\
            f'{df_test['grader_kappa'].mean():.8f}\n'
+
 
 
 #

@@ -1,0 +1,18 @@
+Git hash: ff9b8add
+
+Git status (./src): On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	output/cls_2024-12-24-15-24-23/
+	output/cls_2024-12-27-18-30-08/
+	output/cls_2024-12-31-16-52-33/
+	output/results/CW_1x5_Dynamic_Complete/
+	output/results/CW_3x5_Dynamic/
+	output/results/Experiment_/20251209-154256/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+
+Running on system cano
