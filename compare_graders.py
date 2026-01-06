@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from adjustText import adjust_text
 from pathlib import Path
 
 reports_root = Path('./output/reports')
@@ -19,7 +20,16 @@ midscope_datasets = [
 ]
 # All, Shallow, Deep
 compare = 'Deep'
-
+show_labels = [
+    '1x5_Dynamic_Double_GB_Shallow',
+    '1x5_Dynamic_Double_AR_Deep',
+    '1x5_Static_Double_GB_Deep',
+    '5x5_Dynamic_Double_AR_Shallow',
+    '1x5_Dynamic_Ternary_Shallow',
+    '1x5_Dynamic_Ternary_Deep',
+    '1x5_Dynamic_Double_GB_Deep',
+    '3x5_Static_Double_GB_Deep',
+]
 
 def main():
     dfs = []
@@ -37,15 +47,16 @@ def main():
             df = df[~df['algorithm'].str.contains('Shallow')]
         dfs.append(df)
     df = pd.concat(dfs)
-    print(df.dataset.unique())
     ranks_train = ranks_table(df, 'train')
     ranks_test = ranks_table(df, 'test')
 
     pf_train = plot_pareto_front(ranks_train, 'train')
     pf_test = plot_pareto_front(ranks_test, 'test')
 
+    print("TRAINING TABLE:")
     print(table_to_latex(ranks_train, pf_train))
     print("")
+    print("TESTING TABLE:")
     print(table_to_latex(ranks_test, pf_test))
 
 
@@ -112,23 +123,34 @@ def plot_pareto_front(summary_df, train_or_test):
     x_col, max_x = 'mean_reject', False
     y_col, max_y = 'mean_accuracy', True
     frontier = pareto_frontier(summary_df, x_col, y_col, max_x, max_y)
-    plt.figure(figsize=(7, 6))
+    plt.figure(figsize=(8, 8))
     plt.scatter(summary_df[x_col], summary_df[y_col], c='gray', alpha=0.6)
-    plt.plot(frontier[x_col], frontier[y_col], 'r-o')
+    plt.plot(frontier[x_col], frontier[y_col], 'r-o', linewidth=1)
 
     # Label points
-    for _, row in frontier.iterrows():
-        #for _, row in summary_df.iterrows():
-        plt.text(row[x_col] + 0.001, row[y_col] - 0.001, f'{row['algorithm']}',
-                 fontsize=10)
+    texts = []
+    for _, row in summary_df.iterrows():
+        if row['algorithm'] in show_labels or compare != 'All':
+            texts.append(
+                plt.text(row[x_col], row[y_col], f'{row['algorithm']}', fontsize=12)
+            )
+    adjust_text(texts, arrowprops=dict(arrowstyle='->', color='black'))
 
     plt.xlabel(x_col)
     plt.ylabel(y_col)
-    plt.title('Accuracy vs. Reject Rate')
+    if train_or_test == 'train':
+        words = 'Training Set'
+    else:
+        words = 'Testing Set'
+    if compare == 'Shallow':
+        words += ', Shallow Graders Only'
+    elif compare == 'Deep':
+        words += ', Deep Graders Only'
+    plt.title(f'Accuracy vs. Reject Rate ({words})', fontsize=18)
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(
-        f'figv2/grader_comparison_{train_or_test}.png',
+        f'figv2/out/grader_comparison_{train_or_test}_compare_{compare}.png',
         dpi=300,  # High resolution (dots per inch)
         bbox_inches='tight',  # Trims whitespace and prevents cutting off labels
         transparent=True  # Transparent background (PNG only)
