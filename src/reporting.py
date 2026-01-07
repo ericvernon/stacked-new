@@ -417,20 +417,24 @@ def csv_summary_report(parsed_results, prefix):
     return sb
 
 
-CSV_SUMMARY_HEADER = 'dataset,algorithm,hybrid_accuracy_train,hybrid_reject_train,hybrid_kappa_train,'\
-    'hybrid_accuracy_test,hybrid_reject_test,hybrid_kappa_test'
+CSV_SUMMARY_HEADER = ('dataset,algorithm,'
+                      'hybrid_accuracy_train,hybrid_glass_train,hybrid_black_train,hybrid_reject_train,hybrid_kappa_train,'
+                      'hybrid_accuracy_test,hybrid_glass_test,hybrid_black_test,hybrid_reject_test,hybrid_kappa_test')
 
 
 def csv_summary_from_df(df_train, df_test, dataset_name, prefix):
     return f'{dataset_name},'\
            f'{prefix},'\
            f'{df_train['hybrid_accuracy_all'].mean():.8f},'\
+           f'{df_train['hybrid_glass_usage'].mean():.8f},'\
+           f'{df_train['hybrid_black_usage'].mean():.8f},'\
            f'{df_train['hybrid_reject_rate'].mean():.8f},'\
            f'{df_train['grader_kappa'].mean():.8f},'\
-           f'{df_test['hybrid_accuracy_all'].mean():.8f},'\
+           f'{df_test['hybrid_accuracy_all'].mean():.8f},' \
+           f'{df_test['hybrid_glass_usage'].mean():.8f},' \
+           f'{df_test['hybrid_black_usage'].mean():.8f},' \
            f'{df_test['hybrid_reject_rate'].mean():.8f},'\
            f'{df_test['grader_kappa'].mean():.8f}\n'
-
 
 
 #

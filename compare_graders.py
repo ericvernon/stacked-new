@@ -5,6 +5,9 @@ import pandas as pd
 from adjustText import adjust_text
 from pathlib import Path
 
+from matplotlib import rcParams
+rcParams['font.family'] = 'Times New Roman'
+
 reports_root = Path('./output/reports')
 folders = [
     'CW_1x5_Dynamic_Complete/20251212-182251',
@@ -26,8 +29,11 @@ show_labels = [
     '1x5_Static_Double_GB_Deep',
     '5x5_Dynamic_Double_AR_Shallow',
     '1x5_Dynamic_Ternary_Deep',
+    '1x5_Dynamic_Ternary_Shallow',
     '3x5_Static_Double_GB_Deep',
+    '5x5_Dynamic_Double_GB_Deep',
 ]
+
 
 def main():
     dfs = []
@@ -61,6 +67,8 @@ def main():
 def ranks_table(df, train_or_test):
     rank_specs = {
         f'hybrid_accuracy_{train_or_test}': 'max',
+        f'hybrid_glass_{train_or_test}': 'max',
+        f'hybrid_black_{train_or_test}': 'min',
         f'hybrid_reject_{train_or_test}': 'min',
         f'hybrid_kappa_{train_or_test}': 'max',
     }
@@ -75,9 +83,13 @@ def ranks_table(df, train_or_test):
         df.groupby('algorithm')
         .agg(
             mean_accuracy=(f'hybrid_accuracy_{train_or_test}', 'mean'),
+            mean_glass=(f'hybrid_glass_{train_or_test}', 'mean'),
+            mean_black=(f'hybrid_black_{train_or_test}', 'mean'),
             mean_reject=(f'hybrid_reject_{train_or_test}', 'mean'),
             mean_kappa=(f'hybrid_kappa_{train_or_test}', 'mean'),
             mean_accuracy_rank=(f'hybrid_accuracy_{train_or_test}_rank', 'mean'),
+            mean_glass_rank=(f'hybrid_glass_{train_or_test}_rank', 'mean'),
+            mean_black_rank=(f'hybrid_black_{train_or_test}_rank', 'mean'),
             mean_reject_rank=(f'hybrid_reject_{train_or_test}_rank', 'mean'),
             mean_kappa_rank=(f'hybrid_kappa_{train_or_test}_rank', 'mean'),
         )
@@ -93,20 +105,37 @@ def table_to_latex(summary_table, pf):
         bold = row["algorithm"] == "1x5_Dynamic_Double_GB_Shallow"
         algo_name = bold_helper(row["algorithm"].replace("_", "-"), bold)
         mean_accuracy = bold_helper(f'{(100 * row["mean_accuracy"]):.2f}', bold)
+        mean_glass = bold_helper(f'{(100 * row['mean_glass']):.2f}', bold)
+        mean_black = bold_helper(f'{(100 * row['mean_black']):.2f}', bold)
         mean_reject = bold_helper(f'{(100 * row["mean_reject"]):.2f}', bold)
         mean_kappa = bold_helper(f'{row["mean_kappa"]:.2f}', bold)
         mean_acc_rank = bold_helper(f'{row["mean_accuracy_rank"]:.1f}', bold)
+        mean_glass_rank = bold_helper(f'{row["mean_glass_rank"]:.1f}', bold)
+        mean_black_rank = bold_helper(f'{row["mean_black_rank"]:.1f}', bold)
         mean_reject_rank = bold_helper(f'{row["mean_reject_rank"]:.1f}', bold)
         mean_kappa_rank = bold_helper(f'{row["mean_kappa_rank"]:.1f}', bold)
+
+        # sb += (
+        #     f'{algo_name} & '
+        #     f'{mean_accuracy}\\% & '
+        #     f'{mean_reject}\\% & '
+        #     f'{mean_kappa} & '
+        #     f'{mean_acc_rank} & '
+        #     f'{mean_reject_rank} & '
+        #     f'{mean_kappa_rank} \\\\ \\hline \n'
+        # )
 
         sb += (
             f'{algo_name} & '
             f'{mean_accuracy}\\% & '
-            f'{mean_reject}\\% & '
-            f'{mean_kappa} & '
-            f'{mean_acc_rank} & '
-            f'{mean_reject_rank} & '
-            f'{mean_kappa_rank} \\\\ \\hline \n'
+            f'{mean_glass}\\% & '
+            f'{mean_black}\\% & '
+            f'{mean_reject}\\% '
+            # f'{mean_acc_rank} & '
+            # f'{mean_glass_rank} & '
+            # f'{mean_black_rank} & '
+            # f'{mean_reject_rank} '
+            f'\\\\ \\hline \n'
         )
     return sb
 
@@ -121,7 +150,7 @@ def plot_pareto_front(summary_df, train_or_test):
     x_col, max_x = 'mean_reject', False
     y_col, max_y = 'mean_accuracy', True
     frontier = pareto_frontier(summary_df, x_col, y_col, max_x, max_y)
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(9, 8))
     plt.scatter(summary_df[x_col], summary_df[y_col], c='gray', alpha=0.6)
     plt.plot(frontier[x_col], frontier[y_col], 'r-o', linewidth=1)
 
@@ -134,8 +163,9 @@ def plot_pareto_front(summary_df, train_or_test):
             )
     adjust_text(texts, arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=0, mutation_scale=20))
 
-    plt.xlabel(x_col, fontsize=14)
-    plt.ylabel(y_col, fontsize=14)
+    plt.xlabel(x_col, fontsize=16)
+    plt.ylabel(y_col, fontsize=16)
+    plt.tick_params(axis='both', which='major', labelsize=14)
     if train_or_test == 'train':
         words = 'Training Set'
     else:
@@ -144,7 +174,7 @@ def plot_pareto_front(summary_df, train_or_test):
         words += ', Shallow Graders Only'
     elif compare == 'Deep':
         words += ', Deep Graders Only'
-    plt.title(f'Accuracy vs. Reject Rate ({words})', fontsize=22)
+    plt.title(f'Grader Variations: Accuracy vs. Reject Rate ({words})', fontsize=22)
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(

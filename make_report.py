@@ -10,7 +10,7 @@ reports_root = Path('./output/reports')
 results_root = Path('./output/results')
 
 
-def main(experiment_slug, experiment_id):
+def main(experiment_slug, experiment_id, calibration_name):
     results_path = results_root / experiment_slug / experiment_id
     reports_path = reports_root / experiment_slug / experiment_id
     reports_path.mkdir(exist_ok=True, parents=True)
@@ -47,7 +47,6 @@ def main(experiment_slug, experiment_id):
         ('decision_tree-xgboost-grey-ternary', 'ternary', 'Ternary_Deep')
     ]
 
-
     with open(reports_path / 'summary.txt', 'w', encoding='UTF-8') as summary_fh:
         summary_fh.write(CSV_SUMMARY_HEADER + '\n')
         for result_key, grader_type, summary_name in infos:
@@ -68,16 +67,16 @@ def main(experiment_slug, experiment_id):
     print('OK')
 
 
+experiments = [
+    ['CW_5x5_Static_Midscope', '20251218-162132', '5x5_Static'],
+    ['CW_5x5_Dynamic_Midscope','20251216-190523', '5x5_Dynamic'],
+    ['CW_3x5_Static_Midscope', '20251218-162436', '3x5_Static'],
+    ['CW_3x5_Dynamic_Midscope', '20251216-190628', '3x5_Dynamic'],
+    ['CW_1x5_Static_Midscope', '20251218-174146', '1x5_Static'],
+    ['CW_1x5_Dynamic_Complete', '20251212-182251', '1x5_Dynamic'],
+]
 
 
-
-
-default_slug = 'CW_5x5_Static_Midscope'
-default_id = '20251218-162132'
-calibration_name = '5x5_Static'  # Used as a prefix for summary.txt
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--exp-slug', type=str, default=default_slug)
-    parser.add_argument('--exp-id', type=str, default=default_id)
-    args = parser.parse_args()
-    main(args.exp_slug, args.exp_id)
+    for experiment in experiments:
+        main(experiment[0], experiment[1], experiment[2])
