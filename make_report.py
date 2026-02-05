@@ -4,7 +4,8 @@ import shutil
 from pathlib import Path
 
 from src.reporting import (load_results_from_path, parse_results_dict, bulk_text_report, csv_summary_report,
-                           difficulty_band_summary_latex, results_overview_latex, CSV_SUMMARY_HEADER)
+                           difficulty_band_summary_latex, results_overview_latex, CSV_SUMMARY_HEADER,
+                           simple_accuracy_table)
 
 reports_root = Path('./output/reports')
 results_root = Path('./output/results')
@@ -35,6 +36,13 @@ def main(experiment_slug, experiment_id, calibration_name):
         train_fh.write(band_summary_train)
         test_fh.write(band_summary_test)
 
+    # Just a really simple 4-column table of accuracy values for statistical tests etc.
+    with (open(reports_path / 'simple_accuracy_table_training.txt', 'w', encoding='UTF-8') as train_fh,
+          open(reports_path / 'simple_accuracy_table_testing.txt', 'w', encoding='UTF-8') as test_fh):
+        main_results_train, main_results_test = simple_accuracy_table(results_proposed_method, results_binary_grader)
+        train_fh.write(main_results_train)
+        test_fh.write(main_results_test)
+
     #  Summary statistics to compare grader variants
     infos = [
         ('decision_tree-xgboost-dt-binary', 'binary', 'Binary_Shallow'),
@@ -55,6 +63,7 @@ def main(experiment_slug, experiment_id, calibration_name):
             summary_fh.write(summary)
 
 
+
     # x = parse_results_df(
     #         results['decision_tree-xgboost-dt-double']['17']['test'][4],
     #         'double-GB'
@@ -68,11 +77,11 @@ def main(experiment_slug, experiment_id, calibration_name):
 
 
 experiments = [
-    ['CW_5x5_Static_Midscope', '20251218-162132', '5x5_Static'],
-    ['CW_5x5_Dynamic_Midscope','20251216-190523', '5x5_Dynamic'],
-    ['CW_3x5_Static_Midscope', '20251218-162436', '3x5_Static'],
-    ['CW_3x5_Dynamic_Midscope', '20251216-190628', '3x5_Dynamic'],
-    ['CW_1x5_Static_Midscope', '20251218-174146', '1x5_Static'],
+    # ['CW_5x5_Static_Midscope', '20251218-162132', '5x5_Static'],
+    # ['CW_5x5_Dynamic_Midscope','20251216-190523', '5x5_Dynamic'],
+    # ['CW_3x5_Static_Midscope', '20251218-162436', '3x5_Static'],
+    # ['CW_3x5_Dynamic_Midscope', '20251216-190628', '3x5_Dynamic'],
+    # ['CW_1x5_Static_Midscope', '20251218-174146', '1x5_Static'],
     ['CW_1x5_Dynamic_Complete', '20251212-182251', '1x5_Dynamic'],
 ]
 

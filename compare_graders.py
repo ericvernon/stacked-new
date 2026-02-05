@@ -150,6 +150,7 @@ def plot_pareto_front(summary_df, train_or_test):
     x_col, max_x = 'mean_reject', False
     y_col, max_y = 'mean_accuracy', True
     frontier = pareto_frontier(summary_df, x_col, y_col, max_x, max_y)
+
     plt.figure(figsize=(9, 8))
     plt.scatter(summary_df[x_col], summary_df[y_col], c='gray', alpha=0.6)
     plt.plot(frontier[x_col], frontier[y_col], 'r-o', linewidth=1)
@@ -159,13 +160,24 @@ def plot_pareto_front(summary_df, train_or_test):
     for _, row in summary_df.iterrows():
         if row['algorithm'] in show_labels or compare != 'All':
             texts.append(
-                plt.text(row[x_col], row[y_col], f'{row['algorithm']}', fontsize=16)
+                plt.text(row[x_col], row[y_col], f'{row["algorithm"]}', fontsize=16)
             )
     adjust_text(texts, arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=0, mutation_scale=20))
 
-    plt.xlabel(x_col, fontsize=16)
-    plt.ylabel(y_col, fontsize=16)
+    # --- ADVISOR UPDATES START HERE ---
+
+    # 1. Update Axis Labels
+    plt.xlabel("Mean Rejection Rate", fontsize=16)
+    plt.ylabel("Mean Accuracy", fontsize=16)
+
+    # 2. Set strict Axis Limits
+    plt.xlim(0.10, 0.40)
+    plt.ylim(0.86, 0.93)
+
+    # ----------------------------------
+
     plt.tick_params(axis='both', which='major', labelsize=14)
+
     if train_or_test == 'train':
         words = 'Training Set'
     else:
@@ -174,14 +186,20 @@ def plot_pareto_front(summary_df, train_or_test):
         words += ', Shallow Graders Only'
     elif compare == 'Deep':
         words += ', Deep Graders Only'
+
     plt.title(f'Grader Variations: Accuracy vs. Reject Rate ({words})', fontsize=22)
     plt.grid(True)
     plt.tight_layout()
+
+    # Ensure the directory exists to avoid errors if it's a new run
+    output_path = Path(f'figv2/out/grader_comparison_{train_or_test}_compare_{compare}.png')
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     plt.savefig(
-        f'figv2/out/grader_comparison_{train_or_test}_compare_{compare}.png',
-        dpi=300,  # High resolution (dots per inch)
-        bbox_inches='tight',  # Trims whitespace and prevents cutting off labels
-        transparent=True  # Transparent background (PNG only)
+        output_path,
+        dpi=300,
+        bbox_inches='tight',
+        transparent=True
     )
     plt.show()
     return frontier['algorithm']

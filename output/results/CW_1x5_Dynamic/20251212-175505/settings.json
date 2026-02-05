@@ -1,0 +1,1 @@
+{"n_repeats": 5, "n_splits": 10, "datasets": [17, 19, 43, 52, 59, 78, 94, 96, 151, 159, 174, 176, 212, 267, 329, 372, 451, 519, 537, 545, 563, 572, 602, 722, 827, 850, 863, 887, 890, 891], "experiment_slug": "CW_1x5_Dynamic", "n_jobs": 1, "cw_n_splits": 5, "cw_n_repeats": 1, "cw_stop_condition": "dynamic", "save_X": false}

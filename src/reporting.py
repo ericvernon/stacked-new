@@ -303,28 +303,67 @@ def results_overview_latex(parsed_results_with_reject, parsed_results_no_reject)
 
 
 def results_overview_helper(dataset_name, df_with_reject, df_no_reject):
-    # dataset name | DT Accuracy | XGB Accuracy | Hybrid Accuracy (No Reject) | Hybrid Accuracy (Reject) |
-    #   Glass box usage | Black box usage | Reject Rate
+    # 1. Prepare the data for the 4 methods being compared
+    # Structure: (Mean, Std)
+    methods = [
+        (df_with_reject['glass_accuracy_all'].mean(), df_with_reject['glass_accuracy_all'].std()),
+        (df_with_reject['black_accuracy_all'].mean(), df_with_reject['black_accuracy_all'].std()),
+        (df_no_reject['hybrid_accuracy_all'].mean(), df_no_reject['hybrid_accuracy_all'].std()),
+        (df_with_reject['hybrid_accuracy_all'].mean(), df_with_reject['hybrid_accuracy_all'].std())
+    ]
+
+    # 2. Find the highest mean accuracy among the 4 methods
+    max_accuracy = max(m[0] for m in methods)
+
+    # 3. Helper to format cells (Bolds if the mean matches max_accuracy)
+    def fmt_acc(mean, std):
+        m_str = f"{100 * mean:.2f}"
+        s_str = f"± {100 * std:.2f}"
+        # If this is the winner, bold both the Mean and the Std
+        if mean == max_accuracy:
+            return f"\\textbf{{{m_str}}} & \\textbf{{{s_str}}}"
+        return f"{m_str} & {s_str}"
+
+    # 4. Standard formatting for the non-compared metrics (Usage & Reject Rate)
+    def fmt_stat(col_name):
+        mean = df_with_reject[col_name].mean()
+        std = df_with_reject[col_name].std()
+        return f"{100 * mean:.2f} & ± {100 * std:.2f}"
+
+    # Construct the row
     return (
-        f'{dataset_names[dataset_name]} & '
-        f'{100 * df_with_reject['glass_accuracy_all'].mean():.2f} & '
-        f'± {100 * df_with_reject['glass_accuracy_all'].std():.2f} & '
-        f'{100 * df_with_reject['black_accuracy_all'].mean():.2f} & '
-        f'± {100 * df_with_reject['black_accuracy_all'].std():.2f} & '
-        f'{100 * df_no_reject['hybrid_accuracy_all'].mean():.2f} & '
-        f'± {100 * df_no_reject['hybrid_accuracy_all'].std():.2f} & '
-        f'{100 * df_with_reject['hybrid_accuracy_all'].mean():.2f} & '
-        f'± {100 * df_with_reject['hybrid_accuracy_all'].std():.2f} & '
-        f'{100 * df_with_reject['hybrid_glass_usage'].mean():.2f} & '
-        f'± {100 * df_with_reject['hybrid_glass_usage'].std():.2f} & '
-        f'{100 * df_with_reject['hybrid_black_usage'].mean():.2f} & '
-        f'± {100 * df_with_reject['hybrid_black_usage'].std():.2f} & '
-        f'{100 * df_with_reject['hybrid_reject_rate'].mean():.2f} & '
-        f'± {100 * df_with_reject['hybrid_reject_rate'].std():.2f} '
-        '\\\\ \\hline \n'
+        f"{dataset_names[dataset_name]} & "
+        f"{fmt_acc(*methods[0])} & "  # DT Accuracy
+        f"{fmt_acc(*methods[1])} & "  # XGB Accuracy
+        f"{fmt_acc(*methods[2])} & "  # Hybrid (No Reject)
+        f"{fmt_acc(*methods[3])} & "  # Hybrid (Reject)
+        f"{fmt_stat('hybrid_glass_usage')} & "
+        f"{fmt_stat('hybrid_black_usage')} & "
+        f"{fmt_stat('hybrid_reject_rate')} "
+        "\\\\ \\hline \n"
     )
 
 
+def simple_accuracy_table(parsed_results_with_reject, parsed_results_no_reject):
+    header = 'dataset,gb_accuracy,bb_accuracy,hybrid_accuracy_no_reject,hybrid_accuracy_w_reject\n'
+    sb_train, sb_test = header, header
+    for dataset_name in parsed_results_with_reject.keys():
+        results_reject = parsed_results_with_reject[dataset_name]
+        results_no_reject = parsed_results_no_reject[dataset_name]
+        sb_train += simple_accuracy_helper(dataset_name, results_reject['train'], results_no_reject['train'])
+        sb_test += simple_accuracy_helper(dataset_name, results_reject['test'], results_no_reject['test'])
+    return sb_train, sb_test
+
+def simple_accuracy_helper(dataset_name, df_with_reject, df_no_reject):
+    # dataset name | DT Accuracy | XGB Accuracy | Hybrid Accuracy (No Reject) | Hybrid Accuracy (Reject) |
+    return (
+        f'{dataset_names[dataset_name]},'
+        f'{df_with_reject['glass_accuracy_all'].mean():.8f},'
+        f'{df_with_reject['black_accuracy_all'].mean():.8f},'
+        f'{df_no_reject['hybrid_accuracy_all'].mean():.8f},'
+        f'{df_with_reject['hybrid_accuracy_all'].mean():.8f}'
+        f'\n'
+    )
 
 def results_df_to_text(results_df):
     sb = ''

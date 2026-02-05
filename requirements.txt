@@ -10,3 +10,7 @@ matplotlib<3.10.0
 tqdm
 plotly
 adjusttext
+scipy
+scikit-posthocs
+Orange3
+autorank
