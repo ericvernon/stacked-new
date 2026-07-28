@@ -272,23 +272,23 @@ def difficulty_band_summary_latex(parsed_results):
 def band_summary_helper(dataset_name, df):
     return (f'{dataset_names[dataset_name]} & '
             f'{100 * df['hybrid_accuracy_all'].mean():.2f} & '
-            f'± {100 * df['hybrid_accuracy_all'].std():.2f} & '
+            f'$\\pm$ {100 * df['hybrid_accuracy_all'].std():.2f} & '
             f'{100 * df['glass_accuracy_all'].mean():.2f} & '
-            f'± {100 * df['glass_accuracy_all'].std():.2f} & '
+            f'$\\pm$ {100 * df['glass_accuracy_all'].std():.2f} & '
             f'{100 * df['black_accuracy_all'].mean():.2f} & '
-            f'± {100 * df['black_accuracy_all'].std():.2f} & '
+            f'$\\pm$ {100 * df['black_accuracy_all'].std():.2f} & '
             f'{100 * df['glass_accuracy_easy'].mean():.2f} & '
-            f'± {100 * df['glass_accuracy_easy'].std():.2f} & '
+            f'$\\pm$ {100 * df['glass_accuracy_easy'].std():.2f} & '
             f'{100 * df['black_accuracy_easy'].mean():.2f} & '
-            f'± {100 * df['black_accuracy_easy'].std():.2f} & '
+            f'$\\pm$ {100 * df['black_accuracy_easy'].std():.2f} & '
             f'{100 * df['glass_accuracy_hard'].mean():.2f} & '
-            f'± {100 * df['glass_accuracy_hard'].std():.2f} & '
+            f'$\\pm$ {100 * df['glass_accuracy_hard'].std():.2f} & '
             f'{100 * df['black_accuracy_hard'].mean():.2f} & '
-            f'± {100 * df['black_accuracy_hard'].std():.2f} & '
+            f'$\\pm$ {100 * df['black_accuracy_hard'].std():.2f} & '
             f'{100 * df['glass_accuracy_very_hard'].mean():.2f} & '
-            f'± {100 * df['glass_accuracy_very_hard'].std():.2f} & '
+            f'$\\pm$ {100 * df['glass_accuracy_very_hard'].std():.2f} & '
             f'{100 * df['black_accuracy_very_hard'].mean():.2f} & '
-            f'± {100 * df['black_accuracy_very_hard'].std():.2f} \\\\ \\hline\n'
+            f'$\\pm$ {100 * df['black_accuracy_very_hard'].std():.2f} \\\\ \n'
             )
 
 
@@ -318,7 +318,7 @@ def results_overview_helper(dataset_name, df_with_reject, df_no_reject):
     # 3. Helper to format cells (Bolds if the mean matches max_accuracy)
     def fmt_acc(mean, std):
         m_str = f"{100 * mean:.2f}"
-        s_str = f"± {100 * std:.2f}"
+        s_str = f"$\\pm$ {100 * std:.2f}"
         # If this is the winner, bold both the Mean and the Std
         if mean == max_accuracy:
             return f"\\textbf{{{m_str}}} & \\textbf{{{s_str}}}"
@@ -328,7 +328,7 @@ def results_overview_helper(dataset_name, df_with_reject, df_no_reject):
     def fmt_stat(col_name):
         mean = df_with_reject[col_name].mean()
         std = df_with_reject[col_name].std()
-        return f"{100 * mean:.2f} & ± {100 * std:.2f}"
+        return f"{100 * mean:.2f} & $\\pm$ {100 * std:.2f}"
 
     # Construct the row
     return (
@@ -340,7 +340,7 @@ def results_overview_helper(dataset_name, df_with_reject, df_no_reject):
         f"{fmt_stat('hybrid_glass_usage')} & "
         f"{fmt_stat('hybrid_black_usage')} & "
         f"{fmt_stat('hybrid_reject_rate')} "
-        "\\\\ \\hline \n"
+        "\\\\ \n"
     )
 
 
@@ -476,98 +476,37 @@ def csv_summary_from_df(df_train, df_test, dataset_name, prefix):
            f'{df_test['grader_kappa'].mean():.8f}\n'
 
 
-#
-# def bulk_latex_report(train_or_test):
-#     report = ''
-#     reports_path = reports_root / experiment_name
-#     report_path = reports_path / f'latex_for_paper_{train_or_test}.txt'
-#     results = load_results()
-#     bg_key = 'decision_tree-xgboost-decision_tree-binary'
-#     tg_key = 'decision_tree-xgboost-decision_tree-ternary'
-#     assert(results[bg_key].keys() == results[tg_key].keys())
-#     dataset_ids = results[bg_key].keys()
-#     for dataset_id in dataset_ids:
-#         if dataset_id in dataset_names:
-#             dset_name = dataset_names[dataset_id]
-#         else:
-#             dset_name = dataset_id
-#         report += f'{dset_name} & '
-#         binary_grader = latex_df_from_dict(results[bg_key][dataset_id][train_or_test])
-#         ternary_grader = latex_df_from_dict(results[tg_key][dataset_id][train_or_test])
-#
-#         print(ternary_grader['hybrid_accuracy'].mean())
-#
-#         # Latex style:
-#         # brst-w & 96.56 & ± 1.00 & 99.86 & ± 0.23 & 99.74 & ± 0.30 & 23.32 & ± 8.39 & 23.32 & ± 8.39 & 23.32 & ± 8.39 & 23.32 & ± 8.39\\ \hline
-#         report += f'{(100 * binary_grader["glass_accuracy"].mean()):.2f} & '
-#         report += f'± {(100 * binary_grader["glass_accuracy"].std()):.2f} & '
-#
-#         report += f'{(100 * binary_grader["black_accuracy"].mean()):.2f} & '
-#         report += f'± {(100 * binary_grader["black_accuracy"].std()):.2f} & '
-#
-#         report += f'{(100 * binary_grader["hybrid_accuracy"].mean()):.2f} & '
-#         report += f'± {(100 * binary_grader["hybrid_accuracy"].std()):.2f} & '
-#
-#         report += f'{(100 * ternary_grader["hybrid_accuracy"].mean()):.2f} & '
-#         report += f'± {(100 * ternary_grader["hybrid_accuracy"].std()):.2f} & '
-#
-#         report += f'{(100 * ternary_grader["glass_usage"].mean()):.2f} & '
-#         report += f'± {(100 * ternary_grader["glass_usage"].std()):.2f} & '
-#
-#         report += f'{(100 * ternary_grader["black_usage"].mean()):.2f} & '
-#         report += f'± {(100 * ternary_grader["black_usage"].std()):.2f} & '
-#
-#         report += f'{(100 * ternary_grader["reject_rate"].mean()):.2f} & '
-#         report += f'± {(100 * ternary_grader["reject_rate"].std()):.2f}\\\\ \\hline'
-#         report += '\n'
-#     print(dataset_ids)
-#     with open(report_path, 'w', encoding='UTF-8') as f:
-#         f.write(report)
-#     return
-#
-#
-# def latex_df_from_dict(results_dict):
-#     df = pd.DataFrame.from_dict(results_dict).set_index('run_id')
-#     df['glass_accuracy'] = df['glass_n_correct_total'] / df['n_total']
-#     df['black_accuracy'] = df['black_n_correct_total'] / df['n_total']
-#     df['hybrid_accuracy'] = df['hybrid_n_correct_total'] / (df['n_total'] - df['hybrid_n_reject'])
-#     df['glass_usage'] = df['n_easy'] / df['n_total']
-#     df['black_usage'] = df['n_hard'] / df['n_total']
-#     df['reject_rate'] = df['n_very_hard'] / df['n_total']
-#     return df
-
-
 dataset_names = {
-    '17': 'brst-w',
+    '17': 'breast-w',
     '19': 'car',
-    '43': 'haber',
-    '52': 'iono',
+    '43': 'haberman',
+    '52': 'ionosphere',
     '59': 'letter',
-    '78': 'page',
-    '94': 'spam',
+    '78': 'page-block',
+    '94': 'spambase',
     '96': 'sp-hrt',
-    '151': 'bench',
-    '159': 'gamma',
-    '174': 'parkns',
+    '151': 'sonar',
+    '159': 'magic',
+    '174': 'parkinsons',
     '176': 'blood',
-    '212': 'vertebr',
-    '267': 'bank',
-    '329': 'diabet',
-    '372': 'htru',
-    '451': 'brst-c',
+    '212': 'vertebral',
+    '267': 'banknote',
+    '329': 'retinopath',
+    '372': 'htru2',
+    '451': 'breast-c',
     '519': 'heart-f',
-    '537': 'cerv-c',
+    '537': 'cervical',
     '545': 'rice',
-    '563': 'churn',
-    '572': 'taiwan',
-    '602': 'drybean',
+    '563': 'iranian-ch',
+    '572': 'taiwan-bnk',
+    '602': 'dry-bean',
     '722': 'droid',
-    '732': 'darwin',
-    '759': 'glioma',
+#    '732': 'darwin',
+#    '759': 'glioma',
     '827': 'sepsis',
     '850': 'raisin',
-    '863': 'matern',
-    '887': 'survey',
+    '863': 'mat-health',
+    '887': 'nhanes',
     '890': 'aids',
-    '891': 'cdc-d',
+    '891': 'cdc-diabet',
 }

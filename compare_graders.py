@@ -24,16 +24,17 @@ midscope_datasets = [
 # All, Shallow, Deep
 compare = 'All'
 show_labels = [
-    '1x5_Dynamic_Double_GB_Shallow',
-    '1x5_Dynamic_Double_AR_Deep',
-    '1x5_Static_Double_GB_Deep',
-    '5x5_Dynamic_Double_AR_Shallow',
-    '1x5_Dynamic_Ternary_Deep',
-    '1x5_Dynamic_Ternary_Shallow',
-    '3x5_Static_Double_GB_Deep',
-    '5x5_Dynamic_Double_GB_Deep',
+    'Dynamic-1x5-GB-Prio-Shallow',
+    'Dynamic-1x5-AR-Prio-Deep',
+    'Static-1x5-GB-Prio-Deep',
+    'Dynamic-5x5-AR-Prio-Shallow',
+    'Dynamic-1x5-Ternary-Deep',
+    'Dynamic-1x5-Ternary-Shallow',
+    'Static-3x5-GB-Prio-Deep',
 ]
-
+show_labels_above = [
+    'Dynamic-5x5-GB-Prio-Deep',
+]
 
 def main():
     dfs = []
@@ -51,6 +52,9 @@ def main():
             df = df[~df['algorithm'].str.contains('Shallow')]
         dfs.append(df)
     df = pd.concat(dfs)
+
+    df['algorithm'] = df['algorithm'].apply(format_nomenclature)
+
     ranks_train = ranks_table(df, 'train')
     ranks_test = ranks_table(df, 'test')
 
@@ -62,6 +66,21 @@ def main():
     print("")
     print("TESTING TABLE:")
     print(table_to_latex(ranks_test, pf_test))
+
+
+def format_nomenclature(old_name):
+    parts = old_name.split('_')
+    folds = parts[0]
+    calib = parts[1]  # Dynamic or Static
+
+    if "Ternary" in parts:
+        depth = parts[-1]
+        return f"{calib}-{folds}-Ternary-{depth}"
+    else:
+        # It's a double grader, so parts[3] is the Priority (GB or AR)
+        prio = parts[3]
+        depth = parts[-1]
+        return f"{calib}-{folds}-{prio}-Prio-{depth}"
 
 
 def ranks_table(df, train_or_test):
@@ -102,7 +121,7 @@ def table_to_latex(summary_table, pf):
     sb = ''
     for idx, row in summary_table.iterrows():
         # bold = row["algorithm"] in pf.values
-        bold = row["algorithm"] == "1x5_Dynamic_Double_GB_Shallow"
+        bold = row["algorithm"] == "Dynamic-1x5-GB-Prio-Shallow"
         algo_name = bold_helper(row["algorithm"].replace("_", "-"), bold)
         mean_accuracy = bold_helper(f'{(100 * row["mean_accuracy"]):.2f}', bold)
         mean_glass = bold_helper(f'{(100 * row['mean_glass']):.2f}', bold)
@@ -159,11 +178,26 @@ def plot_pareto_front(summary_df, train_or_test):
     texts = []
     for _, row in summary_df.iterrows():
         if row['algorithm'] in show_labels or compare != 'All':
+            # These go into the adjust_text algorithm
             texts.append(
                 plt.text(row[x_col], row[y_col], f'{row["algorithm"]}', fontsize=16)
             )
-    adjust_text(texts, arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=0, mutation_scale=20))
 
+        elif row['algorithm'] in show_labels_above:
+            # DO NOT append to texts array! Handle manually.
+            # xy = the true point (where the arrow points)
+            # xytext = the manual offset (where the text box sits)
+            plt.annotate(
+                row['algorithm'],
+                xy=(row[x_col], row[y_col]),
+                xytext=(row[x_col] - 0.08, row[y_col] + 0.005),  # Adjust these decimals to taste
+                fontsize=16,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.85),
+                arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=0, mutation_scale=20)
+            )
+
+    # Let adjust_text handle only the ones in the texts array
+    adjust_text(texts, arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=0, mutation_scale=20))
     # --- ADVISOR UPDATES START HERE ---
 
     # 1. Update Axis Labels
@@ -187,7 +221,7 @@ def plot_pareto_front(summary_df, train_or_test):
     elif compare == 'Deep':
         words += ', Deep Graders Only'
 
-    plt.title(f'Grader Variations: Accuracy vs. Reject Rate ({words})', fontsize=22)
+    # plt.title(f'Grader Variations: Accuracy vs. Reject Rate ({words})', fontsize=22)
     plt.grid(True)
     plt.tight_layout()
 
