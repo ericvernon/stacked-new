@@ -168,6 +168,9 @@ def bold_helper(text, bold):
 def plot_pareto_front(summary_df, train_or_test):
     x_col, max_x = 'mean_reject', False
     y_col, max_y = 'mean_accuracy', True
+    summary_df = summary_df.copy()
+    summary_df[x_col] = 100 * summary_df[x_col]
+    summary_df[y_col] = 100 * summary_df[y_col]
     frontier = pareto_frontier(summary_df, x_col, y_col, max_x, max_y)
 
     plt.figure(figsize=(9, 8))
@@ -201,12 +204,12 @@ def plot_pareto_front(summary_df, train_or_test):
     # --- ADVISOR UPDATES START HERE ---
 
     # 1. Update Axis Labels
-    plt.xlabel("Mean Rejection Rate", fontsize=16)
-    plt.ylabel("Mean Accuracy", fontsize=16)
+    plt.xlabel("Average Rejection Rate (%)", fontsize=16)
+    plt.ylabel("Average Accuracy (%)", fontsize=16)
 
     # 2. Set strict Axis Limits
-    plt.xlim(0.10, 0.40)
-    plt.ylim(0.86, 0.93)
+    plt.xlim(10, 40)
+    plt.ylim(86, 93)
 
     # ----------------------------------
 

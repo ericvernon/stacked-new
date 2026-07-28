@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from sklearn.metrics import cohen_kappa_score
+from sklearn.metrics import cohen_kappa_score, precision_score, recall_score, confusion_matrix
 
 import pandas as pd
 import numpy as np
@@ -98,6 +98,34 @@ def parse_results_dict(results_dict, grader_type):
     return parsed_results
 
 
+def _calc_extended_metrics(y_true, y_pred):
+    """Helper to calculate macro-averaged Precision, Recall, and Specificity."""
+    if len(y_true) == 0:
+        return np.nan, np.nan, np.nan
+
+    # Macro average is used to generalize across both binary and multiclass datasets
+    prec = precision_score(y_true, y_pred, average='macro', zero_division=0)
+    rec = recall_score(y_true, y_pred, average='macro', zero_division=0)
+
+    # Specificity (True Negative Rate) must be extracted from the confusion matrix
+    cm = confusion_matrix(y_true, y_pred)
+    spec_per_class = []
+
+    for i in range(len(cm)):
+        tp = cm[i, i]
+        fn = np.sum(cm[i, :]) - tp
+        fp = np.sum(cm[:, i]) - tp
+        tn = np.sum(cm) - tp - fn - fp
+
+        if (tn + fp) > 0:
+            spec_per_class.append(tn / (tn + fp))
+        else:
+            spec_per_class.append(0.0)
+
+    spec = np.mean(spec_per_class) if spec_per_class else np.nan
+    return prec, rec, spec
+
+
 def parse_results_df(df: pd.DataFrame, grader_type: str):
     """
     Parse a *single* results dataframe, must contain columns 'y_glass', 'y_black', and 'y_truth'
@@ -107,6 +135,11 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
     :param grader_type: The type of grader to evaluate with
     :return: A Python dictionary with parsed statistics about that run
     """
+    # Assuming these are defined elsewhere in your file:
+    DIFFICULTY_EASY = 0
+    DIFFICULTY_HARD = 1
+    DIFFICULTY_VERY_HARD = 2
+
     if grader_type == 'binary' or grader_type == 'ternary':
         y_final_grade = df['y_grader'].copy()
     elif grader_type == 'double-GB':
@@ -125,7 +158,7 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
         raise ValueError(f'Unknown grader type {grader_type}')
     df['y_difficulty'] = y_final_grade
 
-
+    # --- ACCURACY CALCULATIONS ---
     hybrid_n_correct_easy = np.count_nonzero(
         (df['y_glass'] == df['y_truth']) &
         (df['y_difficulty'] == DIFFICULTY_EASY)
@@ -164,6 +197,22 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
         (df['y_black'] == df['y_truth']) &
         (df['y_difficulty'] == DIFFICULTY_VERY_HARD)
     )
+
+    # --- EXTENDED METRICS (Precision, Recall, Specificity) ---
+    glass_prec, glass_rec, glass_spec = _calc_extended_metrics(df['y_truth'], df['y_glass'])
+    black_prec, black_rec, black_spec = _calc_extended_metrics(df['y_truth'], df['y_black'])
+
+    # For Hybrid, we must filter out the Rejected patterns (VERY_HARD)
+    valid_hybrid_mask = (df['y_difficulty'] != DIFFICULTY_VERY_HARD)
+    y_truth_hybrid = df['y_truth'][valid_hybrid_mask]
+
+    # Reconstruct the Hybrid's actual predictions based on the difficulty flag
+    y_pred_hybrid = np.where(
+        df['y_difficulty'][valid_hybrid_mask] == DIFFICULTY_EASY,
+        df['y_glass'][valid_hybrid_mask],
+        df['y_black'][valid_hybrid_mask]
+    )
+    hybrid_prec, hybrid_rec, hybrid_spec = _calc_extended_metrics(y_truth_hybrid, y_pred_hybrid)
 
     # True-difficulty selectors
     actually_easy_selector = (df['y_glass'] == df['y_truth'])
@@ -213,9 +262,22 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
         'hybrid_n_correct_hard': hybrid_n_correct_hard,
         'hybrid_n_reject': hybrid_n_reject,
         'hybrid_accuracy_all': hybrid_n_correct_total / (
-                    n_total - hybrid_n_reject) if n_total > hybrid_n_reject else np.nan,
+                n_total - hybrid_n_reject) if n_total > hybrid_n_reject else np.nan,
         'hybrid_accuracy_easy': (hybrid_n_correct_easy / n_easy) if n_easy > 0 else np.nan,
         'hybrid_accuracy_hard': (hybrid_n_correct_hard / n_hard) if n_hard > 0 else np.nan,
+
+        # --- NEW METRICS ADDED HERE ---
+        'glass_precision': glass_prec,
+        'glass_recall': glass_rec,
+        'glass_specificity': glass_spec,
+        'black_precision': black_prec,
+        'black_recall': black_rec,
+        'black_specificity': black_spec,
+        'hybrid_precision': hybrid_prec,
+        'hybrid_recall': hybrid_rec,
+        'hybrid_specificity': hybrid_spec,
+        # ------------------------------
+
         'glass_n_correct_total': glass_n_correct_total,
         'glass_n_correct_easy': glass_n_correct_easy,
         'glass_n_correct_hard': glass_n_correct_hard,
@@ -224,7 +286,8 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
         'glass_accuracy_easy': (glass_n_correct_easy / n_easy) if n_easy > 0 else np.nan,
         'glass_accuracy_hard': (glass_n_correct_hard / n_hard) if n_hard > 0 else np.nan,
         'glass_accuracy_very_hard': (glass_n_correct_very_hard / n_very_hard) if n_very_hard > 0 else np.nan,
-        'glass_accuracy_non_easy': ((glass_n_correct_hard + glass_n_correct_very_hard) / (n_hard + n_very_hard)) if (n_hard + n_very_hard) > 0 else np.nan,
+        'glass_accuracy_non_easy': ((glass_n_correct_hard + glass_n_correct_very_hard) / (n_hard + n_very_hard)) if (
+                                                                                                                                n_hard + n_very_hard) > 0 else np.nan,
         'black_n_correct_total': black_n_correct_total,
         'black_n_correct_easy': black_n_correct_easy,
         'black_n_correct_hard': black_n_correct_hard,
@@ -233,7 +296,8 @@ def parse_results_df(df: pd.DataFrame, grader_type: str):
         'black_accuracy_easy': (black_n_correct_easy / n_easy) if n_easy > 0 else np.nan,
         'black_accuracy_hard': (black_n_correct_hard / n_hard) if n_hard > 0 else np.nan,
         'black_accuracy_very_hard': (black_n_correct_very_hard / n_very_hard) if n_very_hard > 0 else np.nan,
-        'black_accuracy_non_easy': ((black_n_correct_hard + black_n_correct_very_hard) / (n_hard + n_very_hard)) if (n_hard + n_very_hard) > 0 else np.nan,
+        'black_accuracy_non_easy': ((black_n_correct_hard + black_n_correct_very_hard) / (n_hard + n_very_hard)) if (
+                                                                                                                                n_hard + n_very_hard) > 0 else np.nan,
         'hybrid_glass_usage': n_easy / n_total,
         'hybrid_black_usage': n_hard / n_total,
         'hybrid_reject_rate': n_very_hard / n_total,
@@ -342,6 +406,70 @@ def results_overview_helper(dataset_name, df_with_reject, df_no_reject):
         f"{fmt_stat('hybrid_reject_rate')} "
         "\\\\ \n"
     )
+
+
+def results_extended_latex(parsed_results_with_reject, parsed_results_no_reject):
+    sb_train, sb_test = '', ''
+    for dataset_name in parsed_results_with_reject.keys():
+        results_reject = parsed_results_with_reject[dataset_name]
+        results_no_reject = parsed_results_no_reject[dataset_name]
+        sb_train += extended_results_helper(dataset_name, results_reject['train'], results_no_reject['train'])
+        sb_test += extended_results_helper(dataset_name, results_reject['test'], results_no_reject['test'])
+    return sb_train, sb_test
+
+
+def extended_results_helper(dataset_name, df_with_reject, df_no_reject):
+    # 1. Prepare the data for the 4 methods being compared
+    # Structure: (Mean, Std)
+    methods = [
+        (
+            df_with_reject['glass_precision'].mean(), df_with_reject['glass_precision'].std(),
+            df_with_reject['glass_recall'].mean(), df_with_reject['glass_recall'].std(),
+            df_with_reject['glass_specificity'].mean(), df_with_reject['glass_specificity'].std(),
+        ),
+        (
+            df_with_reject['black_precision'].mean(), df_with_reject['black_precision'].std(),
+            df_with_reject['black_recall'].mean(), df_with_reject['black_recall'].std(),
+            df_with_reject['black_specificity'].mean(), df_with_reject['black_specificity'].std(),
+        ),
+        (
+            df_no_reject['hybrid_precision'].mean(), df_no_reject['hybrid_precision'].std(),
+            df_no_reject['hybrid_recall'].mean(), df_no_reject['hybrid_recall'].std(),
+            df_no_reject['hybrid_specificity'].mean(), df_no_reject['hybrid_specificity'].std(),
+        ),
+        (
+            df_with_reject['hybrid_precision'].mean(), df_with_reject['hybrid_precision'].std(),
+            df_with_reject['hybrid_recall'].mean(), df_with_reject['hybrid_recall'].std(),
+            df_with_reject['hybrid_specificity'].mean(), df_with_reject['hybrid_specificity'].std(),
+        ),
+    ]
+
+    max_prec = max(m[0] for m in methods)
+    max_rec = max(m[2] for m in methods)
+    max_spec = max(m[4] for m in methods)
+
+    # 3. Helper to format a single value, bolding it if it matches the maximum
+    def fmt_val(val, max_val):
+        formatted_val = f"{100 * val:.2f}"  # Using 1 decimal place to save horizontal space!
+
+        # Use np.isclose to avoid strict floating-point equality bugs
+        if np.isclose(val, max_val, atol=1e-5):
+            return f"\\textbf{{{formatted_val}}}"
+        return formatted_val
+
+    # 4. Helper to format a complete method's metrics
+    def fmt_method(m):
+        return f"{fmt_val(m[0], max_prec)} & {fmt_val(m[2], max_rec)} & {fmt_val(m[4], max_spec)}"
+
+    # 5. Construct the final LaTeX row
+    return (
+        f"{dataset_names[dataset_name]} & "
+        f"{fmt_method(methods[0])} & "  # DT
+        f"{fmt_method(methods[1])} & "  # XGB
+        f"{fmt_method(methods[2])} & "  # Hybrid (No Reject)
+        f"{fmt_method(methods[3])} \\\\ \n"  # Hybrid (Reject)
+    )
+
 
 
 def simple_accuracy_table(parsed_results_with_reject, parsed_results_no_reject):

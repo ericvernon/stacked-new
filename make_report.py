@@ -5,7 +5,7 @@ from pathlib import Path
 
 from src.reporting import (load_results_from_path, parse_results_dict, bulk_text_report, csv_summary_report,
                            difficulty_band_summary_latex, results_overview_latex, CSV_SUMMARY_HEADER,
-                           simple_accuracy_table)
+                           simple_accuracy_table, results_extended_latex)
 
 reports_root = Path('./output/reports')
 results_root = Path('./output/results')
@@ -28,6 +28,13 @@ def main(experiment_slug, experiment_id, calibration_name):
         main_results_train, main_results_test = results_overview_latex(results_proposed_method, results_binary_grader)
         train_fh.write(main_results_train)
         test_fh.write(main_results_test)
+
+    with (open(reports_path / 'extended_table_latex_train.txt', 'w', encoding='UTF-8') as train_fh,
+          open(reports_path / 'extended_table_latex_test.txt', 'w', encoding='UTF-8') as test_fh):
+        main_results_train, main_results_test = results_extended_latex(results_proposed_method, results_binary_grader)
+        train_fh.write(main_results_train)
+        test_fh.write(main_results_test)
+
 
     #  Table with detailed results for each difficulty band.
     with (open(reports_path / 'band_summary_train.txt', 'w', encoding='UTF-8') as train_fh,
