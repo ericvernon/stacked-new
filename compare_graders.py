@@ -193,7 +193,7 @@ def plot_pareto_front(summary_df, train_or_test):
             plt.annotate(
                 row['algorithm'],
                 xy=(row[x_col], row[y_col]),
-                xytext=(row[x_col] - 0.08, row[y_col] + 0.005),  # Adjust these decimals to taste
+                xytext=(row[x_col] - 6, row[y_col] + 0.5),  # Adjust these decimals to taste
                 fontsize=16,
                 bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.85),
                 arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=0, mutation_scale=20)
