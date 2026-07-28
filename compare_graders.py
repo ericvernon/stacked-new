@@ -204,8 +204,8 @@ def plot_pareto_front(summary_df, train_or_test):
     # --- ADVISOR UPDATES START HERE ---
 
     # 1. Update Axis Labels
-    plt.xlabel("Average Rejection Rate (%)", fontsize=16)
-    plt.ylabel("Average Accuracy (%)", fontsize=16)
+    plt.xlabel("Average Rejection Rate (%)", fontsize=20)
+    plt.ylabel("Average Accuracy (%)", fontsize=20)
 
     # 2. Set strict Axis Limits
     plt.xlim(10, 40)
@@ -229,12 +229,11 @@ def plot_pareto_front(summary_df, train_or_test):
     plt.tight_layout()
 
     # Ensure the directory exists to avoid errors if it's a new run
-    output_path = Path(f'figv2/out/grader_comparison_{train_or_test}_compare_{compare}.png')
+    output_path = Path(f'figv2/out/grader_comparison_{train_or_test}_compare_{compare}.pdf')
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     plt.savefig(
         output_path,
-        dpi=300,
         bbox_inches='tight',
         transparent=True
     )
