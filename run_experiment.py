@@ -10,7 +10,7 @@ from xgboost import XGBClassifier
 
 from src.experiment import ExperimentClassification
 from src.lib import Settings, write_git_info
-from src.models import tuned_decision_tree_classifier
+from src.models import OptunaXGBoost, OptunaXGBoostClassifier, tuned_decision_tree_classifier
 from src.param_cache import parameter_lookup
 
 dataset_baskets = {
@@ -77,6 +77,7 @@ def main(s: Settings):
         black_box_base = partial(XGBClassifier, random_state=0, **params['xgboost']['params'])
         black_box_choices = {
             'xgboost': black_box_base,
+            'xgboost_noleak_150trials': partial(OptunaXGBoostClassifier, n_trials=150, n_jobs=settings.n_jobs),
         }
 
         glass_box_grader = partial(tuned_decision_tree_classifier, max_allowed_depth=4)
@@ -118,7 +119,7 @@ if __name__ == '__main__':
         cw_n_splits=args.cw_n_splits,
         cw_n_repeats=args.cw_n_repeats,
         cw_stop_condition=args.cw_stop_condition,
-        n_jobs=1,
+        n_jobs=-1,
     )
 
     print(settings)

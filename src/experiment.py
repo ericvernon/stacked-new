@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pandas as pd
 
@@ -8,6 +10,8 @@ from pathlib import Path
 from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from tqdm import tqdm
+
+from src.models import OptunaXGBoost
 
 from .lib import Settings, DIFFICULTY_EASY, DIFFICULTY_HARD, DIFFICULTY_VERY_HARD
 from .data import load_dataset
@@ -69,9 +73,15 @@ class Experiment(ABC):
             black_box_models = {}
             for name, model_fn in self._black_box_choices.items():
                 model = model_fn()
-                model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings.cw_n_splits,
-                                                        self._settings.cw_n_repeats, self._settings.cw_stop_condition)
                 model.fit(X_train, y_train)
+                if isinstance(model, OptunaXGBoost):
+                    frozen_params = model.get_study_results()[0]
+                    calibration_model_fn = partial(model._model_fn, random_state=0, **frozen_params)
+                else:
+                    calibration_model_fn = model_fn
+                model_wrong_idx = collect_wrong_indices(calibration_model_fn, X_train, y_train, self._settings.cw_n_splits,
+                                                        self._settings.cw_n_repeats, self._settings.cw_stop_condition)
+
                 black_box_models[name] = {
                     'function': model_fn,
                     'wrong_idx': model_wrong_idx,

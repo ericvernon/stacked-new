@@ -21,8 +21,8 @@ def main(experiment_slug, experiment_id, calibration_name):
     shutil.copy(Path(results_path / 'settings.json'), Path(reports_path / 'settings.json'))
 
     #  The main table of results
-    results_proposed_method = parse_results_dict(results['decision_tree-xgboost-dt-double'], 'double-GB')
-    results_binary_grader = parse_results_dict(results['decision_tree-xgboost-dt-binary'], 'binary')
+    results_proposed_method = parse_results_dict(results['decision_tree-xgboost_noleak_150trials-dt-double'], 'double-GB')
+    results_binary_grader = parse_results_dict(results['decision_tree-xgboost_noleak_150trials-dt-binary'], 'binary')
     with (open(reports_path / 'main_table_latex_train.txt', 'w', encoding='UTF-8') as train_fh,
           open(reports_path / 'main_table_latex_test.txt', 'w', encoding='UTF-8') as test_fh):
         main_results_train, main_results_test = results_overview_latex(results_proposed_method, results_binary_grader)
@@ -89,7 +89,8 @@ experiments = [
     # ['CW_3x5_Static_Midscope', '20251218-162436', '3x5_Static'],
     # ['CW_3x5_Dynamic_Midscope', '20251216-190628', '3x5_Dynamic'],
     # ['CW_1x5_Static_Midscope', '20251218-174146', '1x5_Static'],
-    ['CW_1x5_Dynamic_Complete', '20251212-182251', '1x5_Dynamic'],
+#    ['CW_1x5_Dynamic_Complete', '20251212-182251', '1x5_Dynamic'],
+    ['Experiment_', '20261006-011030', '1x5_Dynamic']
 ]
 
 
