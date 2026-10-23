@@ -5,13 +5,9 @@ import json
 from pathlib import Path
 from functools import partial
 
-from sklearn.tree import DecisionTreeClassifier
-from xgboost import XGBClassifier
-
 from src.experiment import ExperimentClassification
 from src.lib import Settings, write_git_info
 from src.models import OptunaXGBoost, OptunaXGBoostClassifier, tuned_decision_tree_classifier
-from src.param_cache import parameter_lookup
 
 dataset_baskets = {
     'fast':     [17, 19, 43, 151, 176, 212, 451, 545, 563, 863],
@@ -66,17 +62,11 @@ def main(s: Settings):
     for dataset_id in s.datasets:
         print(f'.... {dataset_id} ...')
 
-        # This is not pretty ! But probably ok as a quick fix to add some kind of hyperparameter caching
-        params = parameter_lookup(dataset_id)
-
-        glass_box_base = partial(DecisionTreeClassifier, random_state=0, **params['decision_tree']['params'])
         glass_box_choices = {
-            'decision_tree': glass_box_base,
+            'decision_tree_nonleaked': partial(tuned_decision_tree_classifier, max_allowed_depth=4)
         }
 
-        black_box_base = partial(XGBClassifier, random_state=0, **params['xgboost']['params'])
         black_box_choices = {
-            'xgboost': black_box_base,
             'xgboost_noleak_150trials': partial(OptunaXGBoostClassifier, n_trials=150, n_jobs=settings.n_jobs),
         }
 

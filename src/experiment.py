@@ -7,7 +7,9 @@ from abc import ABC, abstractmethod
 from collections import deque
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from pathlib import Path
-from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold
+
+from sklearn import clone
+from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold, GridSearchCV
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from tqdm import tqdm
 
@@ -61,9 +63,12 @@ class Experiment(ABC):
             glass_box_models = {}
             for name, model_fn in self._glass_box_choices.items():
                 model = model_fn()
+                model.fit(X_train, y_train)
+                if isinstance(model, GridSearchCV):
+                    estimator = model.best_estimator_
+                    model_fn = partial(clone, estimator)
                 model_wrong_idx = collect_wrong_indices(model_fn, X_train, y_train, self._settings.cw_n_splits,
                                                         self._settings.cw_n_repeats, self._settings.cw_stop_condition)
-                model.fit(X_train, y_train)
                 glass_box_models[name] = {
                     'function': model_fn,
                     'wrong_idx': model_wrong_idx,
