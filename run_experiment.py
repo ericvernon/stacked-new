@@ -67,7 +67,7 @@ def main(s: Settings):
         }
 
         black_box_choices = {
-            'xgboost_noleak_150trials': partial(OptunaXGBoostClassifier, n_trials=150, n_jobs=settings.n_jobs),
+            'xgboost_noleak_100trials': partial(OptunaXGBoostClassifier, n_trials=100, n_jobs=settings.n_jobs),
         }
 
         glass_box_grader = partial(tuned_decision_tree_classifier, max_allowed_depth=4)
